@@ -1,8 +1,10 @@
+import numpy as np
 import pandas as pd
 import torch
 
 from genrec.data.amazon import kcore_filter
 from genrec.data.sequences import NextItemDataset, leave_one_out, left_pad
+from genrec.models.baselines import SemanticKNN
 from genrec.models.sasrec import SASRec
 
 
@@ -47,3 +49,12 @@ def test_sasrec_ignores_left_padding():
         model.pos_emb.weight[:3] += 10.0
     h2 = model.encode(seqs)
     assert torch.allclose(h[:, 3:], h2[:, 3:], atol=1e-5)
+
+
+def test_semantic_knn_follows_recent_items_and_skips_history():
+    # Items 1, 2 point along x; 3, 5 along y; 4 points away from y.
+    emb = np.array([[0, 0], [1, 0], [1, 0], [0, 1], [0.6, -0.8], [0, 1]], dtype=np.float32)
+    model = SemanticKNN(emb, n_recent=2, decay=0.5)
+    # History items 1 and 3 score highest but are skipped; the most recent one decides the order.
+    assert model.recommend([[3, 1]], k=2) == [[2, 5]]
+    assert model.recommend([[1, 3]], k=2) == [[5, 2]]

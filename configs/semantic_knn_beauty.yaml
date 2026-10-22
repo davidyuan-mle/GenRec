@@ -1,0 +1,8 @@
+name: semantic_knn_beauty
+data_dir: data/processed/beauty
+model: semantic_knn
+embeddings: data/processed/beauty/embeddings/sentence-t5-base.npy  # from scripts/embed_items.py
+eval_ks: [5, 10, 20]
+
+n_recent: 5    # history items in the user profile
+decay: 0.5     # weight per step back in time

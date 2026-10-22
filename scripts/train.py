@@ -12,6 +12,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import torch
 import yaml
 from torch.utils.data import DataLoader
@@ -19,13 +20,22 @@ from torch.utils.data import DataLoader
 from genrec.data.amazon import load_processed
 from genrec.data.sequences import NextItemDataset, leave_one_out
 from genrec.metrics import evaluate
-from genrec.models.baselines import Popularity
+from genrec.models.baselines import Popularity, SemanticKNN
 from genrec.models.sasrec import SASRec
 from genrec.utils import get_device, load_config, set_seed
 
 
 def run_popularity(cfg, train, valid, test):
     model = Popularity().fit(train)
+    k = max(cfg["eval_ks"])
+    return {
+        "valid": evaluate(model.recommend(valid[0], k), valid[1], cfg["eval_ks"]),
+        "test": evaluate(model.recommend(test[0], k), test[1], cfg["eval_ks"]),
+    }
+
+
+def run_semantic_knn(cfg, train, valid, test):
+    model = SemanticKNN(np.load(cfg["embeddings"]), cfg["n_recent"], cfg["decay"])
     k = max(cfg["eval_ks"])
     return {
         "valid": evaluate(model.recommend(valid[0], k), valid[1], cfg["eval_ks"]),
@@ -89,6 +99,8 @@ def main():
 
     if cfg["model"] == "popularity":
         results = run_popularity(cfg, train, valid, test)
+    elif cfg["model"] == "semantic_knn":
+        results = run_semantic_knn(cfg, train, valid, test)
     elif cfg["model"] == "sasrec":
         results = run_sasrec(cfg, train, valid, test, n_items=len(items))
     else:

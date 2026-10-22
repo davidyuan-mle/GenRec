@@ -77,7 +77,7 @@ Small, laptop-sized (Mac MPS/CPU) implementations on **Amazon Beauty**, the stan
 | # | Milestone | Idea | Status |
 |---|---|---|---|
 | 1 | Data + baselines | 5-core filter, leave-one-out split; popularity and SASRec ([notebook](notebooks/01_data_exploration.ipynb)) | ✅ |
-| 2 | Semantic embeddings | Encode item text with a sentence-transformer; item-kNN retrieval | ⬜ |
+| 2 | Semantic embeddings | Encode item text with a sentence-transformer; item-kNN retrieval ([notebook](notebooks/02_semantic_embeddings.ipynb)) | ✅ |
 | 3 | Semantic IDs (k-means) | Hierarchical k-means → 3-level codes; inspect collisions | ⬜ |
 | 4 | Semantic IDs (RQ-VAE) | TIGER/PLUM-style residual quantization; compare with k-means | ⬜ |
 | 5 | Generative retrieval | Tiny Transformer decodes next-item Semantic IDs with trie-constrained beam search | ⬜ |
@@ -93,6 +93,9 @@ pytest
 python scripts/prepare_data.py                               # download + preprocess Amazon Beauty
 python scripts/train.py --config configs/popularity_beauty.yaml
 python scripts/train.py --config configs/sasrec_beauty.yaml
+
+python scripts/embed_items.py                                # item text → sentence-t5-base embeddings
+python scripts/train.py --config configs/semantic_knn_beauty.yaml
 ```
 
 ## Repo structure
