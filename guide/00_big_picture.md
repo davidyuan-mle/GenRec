@@ -11,7 +11,7 @@ Here is a real user from our Amazon Beauty data (user #17). These are their purc
 1. It's a 10 Keratin **Leave-In Conditioner**
 2. It's a 10 Miracle **Oil** Plus Keratin
 3. It's a 10 Miracle **Shampoo** Plus Keratin
-4. It's a 10 Miracle **Deep Condit*ioner** Plus Kerat*in
+4. It's a 10 Miracle **Deep Conditioner** Plus Keratin
 5. It's a 10 Miracle **Leave-In Potion** Plus Keratin
 
 If you only saw items 1–4, what would you guess for item 5? Probably "something else from the It's a 10 line". That guess is exactly what a **sequential recommender** tries to make.
