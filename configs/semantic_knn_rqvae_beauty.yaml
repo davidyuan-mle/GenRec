@@ -1,0 +1,9 @@
+name: semantic_knn_rqvae_beauty
+data_dir: data/processed/beauty
+model: semantic_knn
+# Quantized embeddings from: python scripts/train_rqvae.py --config configs/rqvae_beauty.yaml
+embeddings: data/processed/beauty/semantic_ids/rqvae-3x256_quantized.npy
+eval_ks: [5, 10, 20]
+
+n_recent: 5    # history items in the user profile
+decay: 0.5     # weight per step back in time

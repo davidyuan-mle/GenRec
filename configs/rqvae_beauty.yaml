@@ -1,0 +1,18 @@
+name: rqvae-3x256
+data_dir: data/processed/beauty
+embeddings: data/processed/beauty/embeddings/sentence-t5-base.npy  # from scripts/embed_items.py
+seed: 42
+
+# TIGER-style architecture
+hidden: [512, 256, 128]
+latent: 32
+k: 256         # codes per level
+levels: 3
+beta: 0.25     # commitment weight
+
+lr: 0.001
+batch_size: 1024
+epochs: 3000
+log_every: 100
+reset_every: 50     # reset unused codes every N epochs...
+reset_until: 2000   # ...but stop early enough for the codebooks to settle
