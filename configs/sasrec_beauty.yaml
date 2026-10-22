@@ -13,6 +13,6 @@ dropout: 0.3
 batch_size: 256
 lr: 0.001
 weight_decay: 0.0
-epochs: 200
+epochs: 50
 eval_every: 5
 patience: 4          # evals without valid NDCG@10 improvement before stopping
