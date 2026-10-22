@@ -6,8 +6,9 @@ For a user sequence [i1, ..., in]:
   test:  history [i1, ..., i(n-1)] -> target in
 """
 
+import numpy as np
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Sampler
 
 
 def leave_one_out(sequences: list[list[int]]):
@@ -42,6 +43,55 @@ class NextItemDataset(Dataset):
         inputs = left_pad(s[:-1], self.max_len)
         targets = left_pad(s[1:], self.max_len)
         return torch.tensor(inputs), torch.tensor(targets)
+
+
+class NextItemPairs(Dataset):
+    """(history, next item) pairs at every position of every sequence (TIGER-style).
+
+    For [i1, ..., im]: [i1] -> i2, [i1, i2] -> i3, ..., [i1, ..., i(m-1)] -> im,
+    keeping the most recent max_len history items.
+    """
+
+    def __init__(self, train_seqs: list[list[int]], max_len: int):
+        self.seqs = train_seqs
+        self.pairs = [(s, t) for s, seq in enumerate(train_seqs) for t in range(1, len(seq))]
+        self.max_len = max_len
+
+    def __len__(self):
+        return len(self.pairs)
+
+    def __getitem__(self, idx):
+        s, t = self.pairs[idx]
+        seq = self.seqs[s]
+        return torch.tensor(left_pad(seq[:t], self.max_len)), torch.tensor(seq[t])
+
+    def history_lengths(self) -> np.ndarray:
+        return np.array([min(t, self.max_len) for _, t in self.pairs])
+
+
+class BucketBatchSampler(Sampler):
+    """Batches of similar-length examples, in random order, so padding can be trimmed per batch.
+
+    Each epoch shuffles, sorts by length within chunks of `bucket` batches, cuts
+    those into batches, and shuffles the batches.
+    """
+
+    def __init__(self, lengths: np.ndarray, batch_size: int, bucket: int = 50):
+        self.lengths, self.batch_size, self.bucket = lengths, batch_size, bucket
+
+    def __len__(self):
+        return -(-len(self.lengths) // self.batch_size)
+
+    def __iter__(self):
+        idx = np.random.permutation(len(self.lengths))
+        chunk = self.batch_size * self.bucket
+        batches = []
+        for start in range(0, len(idx), chunk):
+            part = idx[start : start + chunk]
+            part = part[np.argsort(self.lengths[part], kind="stable")]
+            batches += [part[i : i + self.batch_size].tolist() for i in range(0, len(part), self.batch_size)]
+        for b in np.random.permutation(len(batches)):
+            yield batches[b]
 
 
 def pad_histories(histories: list[list[int]], max_len: int) -> torch.Tensor:

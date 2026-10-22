@@ -1,0 +1,21 @@
+name: tiger_beauty
+data_dir: data/processed/beauty
+model: tiger
+# Semantic IDs from: python scripts/train_rqvae.py --config configs/rqvae_beauty.yaml
+semantic_ids: data/processed/beauty/semantic_ids/rqvae-3x256.npy
+seed: 42
+eval_ks: [5, 10, 20]
+
+max_items: 20      # history items fed to the encoder (x4 code tokens each)
+d_model: 128
+n_heads: 4
+n_layers: 4        # encoder and decoder each
+dim_ff: 512
+dropout: 0.1
+
+batch_size: 256
+lr: 0.001
+weight_decay: 0.0
+epochs: 50
+eval_every: 2
+patience: 3        # evals without valid NDCG@10 improvement before stopping

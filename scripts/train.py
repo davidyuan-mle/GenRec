@@ -18,10 +18,11 @@ import yaml
 from torch.utils.data import DataLoader
 
 from genrec.data.amazon import load_processed
-from genrec.data.sequences import NextItemDataset, leave_one_out
+from genrec.data.sequences import BucketBatchSampler, NextItemDataset, NextItemPairs, leave_one_out
 from genrec.metrics import evaluate
 from genrec.models.baselines import Popularity, SemanticKNN
 from genrec.models.sasrec import SASRec
+from genrec.models.tiger import TIGER
 from genrec.utils import get_device, load_config, set_seed
 
 
@@ -48,8 +49,25 @@ def run_sasrec(cfg, train, valid, test, n_items):
     model = SASRec(
         n_items, cfg["max_len"], cfg["hidden"], cfg["n_layers"], cfg["n_heads"], cfg["dropout"]
     ).to(device)
-    opt = torch.optim.Adam(model.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
     loader = DataLoader(NextItemDataset(train, cfg["max_len"]), batch_size=cfg["batch_size"], shuffle=True)
+    return fit_with_early_stopping(cfg, model, loader, valid, test, device)
+
+
+def run_tiger(cfg, train, valid, test):
+    device = get_device()
+    model = TIGER(
+        np.load(cfg["semantic_ids"]), cfg["max_items"], cfg["d_model"], cfg["n_heads"], cfg["n_layers"],
+        cfg["dim_ff"], cfg["dropout"],
+    ).to(device)
+    print(f"TIGER: {sum(p.numel() for p in model.parameters()) / 1e6:.2f}M parameters")
+    pairs = NextItemPairs(train, cfg["max_items"])
+    loader = DataLoader(pairs, batch_sampler=BucketBatchSampler(pairs.history_lengths(), cfg["batch_size"]))
+    return fit_with_early_stopping(cfg, model, loader, valid, test, device)
+
+
+def fit_with_early_stopping(cfg, model, loader, valid, test, device):
+    """Train with model.loss(inputs, targets); keep the weights with the best valid NDCG@10."""
+    opt = torch.optim.Adam(model.parameters(), lr=cfg["lr"], weight_decay=cfg["weight_decay"])
     k = max(cfg["eval_ks"])
 
     best_ndcg, best_state, bad_evals = -1.0, None, 0
@@ -103,6 +121,8 @@ def main():
         results = run_semantic_knn(cfg, train, valid, test)
     elif cfg["model"] == "sasrec":
         results = run_sasrec(cfg, train, valid, test, n_items=len(items))
+    elif cfg["model"] == "tiger":
+        results = run_tiger(cfg, train, valid, test)
     else:
         raise ValueError(f"Unknown model: {cfg['model']}")
 

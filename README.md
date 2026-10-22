@@ -80,7 +80,7 @@ Small, laptop-sized (Mac MPS/CPU) implementations on **Amazon Beauty**, the stan
 | 2 | Semantic embeddings | Encode item text with a sentence-transformer; item-kNN retrieval ([notebook](notebooks/02_semantic_embeddings.ipynb)) | ✅ |
 | 3 | Semantic IDs (k-means) | Residual and hierarchical k-means → 3-level codes; inspect collisions ([notebook](notebooks/03_semantic_ids_kmeans.ipynb)) | ✅ |
 | 4 | Semantic IDs (RQ-VAE) | TIGER/PLUM-style residual quantization; compare with k-means ([notebook](notebooks/04_semantic_ids_rqvae.ipynb)) | ✅ |
-| 5 | Generative retrieval | Tiny Transformer decodes next-item Semantic IDs with trie-constrained beam search | ⬜ |
+| 5 | Generative retrieval | Tiny Transformer decodes next-item Semantic IDs with trie-constrained beam search (implemented and smoke-tested; full training run pending) | 🚧 |
 | 6 | LLM-style ranker (optional) | Netflix-style: verbalized history → small LM → catalog scoring head | ⬜ |
 
 ### Setup
@@ -102,6 +102,8 @@ python scripts/train.py --config configs/semantic_knn_rqkmeans_beauty.yaml
 
 python scripts/train_rqvae.py --config configs/rqvae_beauty.yaml  # RQ-VAE Semantic IDs (~8 min on CPU)
 python scripts/train.py --config configs/semantic_knn_rqvae_beauty.yaml
+
+python scripts/train.py --config configs/tiger_beauty.yaml       # generative retrieval (~2 min/epoch on MPS)
 ```
 
 ## Repo structure
