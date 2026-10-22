@@ -1,0 +1,9 @@
+name: semantic_knn_rqkmeans_beauty
+data_dir: data/processed/beauty
+model: semantic_knn
+# Quantized embeddings from: python scripts/build_semantic_ids.py --method residual --k 256
+embeddings: data/processed/beauty/semantic_ids/residual_kmeans-3x256_quantized.npy
+eval_ks: [5, 10, 20]
+
+n_recent: 5    # history items in the user profile
+decay: 0.5     # weight per step back in time
