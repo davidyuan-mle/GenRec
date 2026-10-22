@@ -1,0 +1,4 @@
+name: popularity_beauty
+data_dir: data/processed/beauty
+model: popularity
+eval_ks: [5, 10, 20]

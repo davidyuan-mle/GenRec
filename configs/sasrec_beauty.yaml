@@ -1,0 +1,18 @@
+name: sasrec_beauty
+data_dir: data/processed/beauty
+model: sasrec
+seed: 42
+eval_ks: [5, 10, 20]
+
+max_len: 50
+hidden: 64
+n_layers: 2
+n_heads: 2
+dropout: 0.3
+
+batch_size: 256
+lr: 0.001
+weight_decay: 0.0
+epochs: 200
+eval_every: 5
+patience: 4          # evals without valid NDCG@10 improvement before stopping

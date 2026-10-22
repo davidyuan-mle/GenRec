@@ -76,7 +76,7 @@ Small, laptop-sized (Mac MPS/CPU) implementations on **Amazon Beauty**, the stan
 
 | # | Milestone | Idea | Status |
 |---|---|---|---|
-| 1 | Data + baselines | 5-core filter, leave-one-out split; popularity and SASRec | ⬜ |
+| 1 | Data + baselines | 5-core filter, leave-one-out split; popularity and SASRec ([notebook](notebooks/01_data_exploration.ipynb)) | ✅ |
 | 2 | Semantic embeddings | Encode item text with a sentence-transformer; item-kNN retrieval | ⬜ |
 | 3 | Semantic IDs (k-means) | Hierarchical k-means → 3-level codes; inspect collisions | ⬜ |
 | 4 | Semantic IDs (RQ-VAE) | TIGER/PLUM-style residual quantization; compare with k-means | ⬜ |
@@ -86,9 +86,13 @@ Small, laptop-sized (Mac MPS/CPU) implementations on **Amazon Beauty**, the stan
 ### Setup
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+python3.12 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
+
+python scripts/prepare_data.py                               # download + preprocess Amazon Beauty
+python scripts/train.py --config configs/popularity_beauty.yaml
+python scripts/train.py --config configs/sasrec_beauty.yaml
 ```
 
 ## Repo structure
