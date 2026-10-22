@@ -18,9 +18,9 @@ Topics I'm tracking:
 
 | Paper / Post | Org | Year | File |
 |---|---|---|---|
-| PLUM: Adapting Pre-trained Language Models for Industrial-scale Generative Recommendations | Google DeepMind / YouTube | 2025 | [PLUM-2025.pdf](PLUM-2025.pdf) |
-| OneRec-Think: In-Text Reasoning for Generative Recommendation | Kuaishou | 2025 | [OneRecThink-2025.pdf](OneRecThink-2025.pdf) |
-| GLIDE: Deploying Semantic ID-based Generative Retrieval for Large-Scale Podcast Discovery at Spotify | Spotify | 2026 | [GLIDE-2026.pdf](GLIDE-2026.pdf) |
+| PLUM: Adapting Pre-trained Language Models for Industrial-scale Generative Recommendations | Google DeepMind / YouTube | 2025 | [PLUM-2025.pdf](papers/PLUM-2025.pdf) |
+| OneRec-Think: In-Text Reasoning for Generative Recommendation | Kuaishou | 2025 | [OneRecThink-2025.pdf](papers/OneRecThink-2025.pdf) |
+| GLIDE: Deploying Semantic ID-based Generative Retrieval for Large-Scale Podcast Discovery at Spotify | Spotify | 2026 | [GLIDE-2026.pdf](papers/GLIDE-2026.pdf) |
 | GenRec: Towards LLM-Native Recommendation at Netflix | Netflix | 2026 | [Medium post](https://medium.com/netflix-techblog/genrec-towards-llm-native-recommendation-at-netflix-f20be6f643e3) |
 
 ### PLUM (YouTube, 2025)
@@ -68,12 +68,46 @@ An **LLM-backed ranker** built by post-training Netflix's internal foundation LL
 
 **Why read it:** a different design point from Semantic-ID generation (LLM as a *ranker* with a scoring head). It is also a clear statement of the "LLM-native RecSys" shift: prompts instead of feature vectors, shared foundation backbones, scaling laws as a design guide, and LLM serving infrastructure.
 
+Per-paper notes live in [notes/](notes/), and [notes/comparison.md](notes/comparison.md) compares the four side by side.
+
+## Hands-on experiments
+
+Small, laptop-sized (Mac MPS/CPU) implementations on **Amazon Beauty**, the standard Semantic ID benchmark. Each milestone is a notebook plus the `src/genrec` modules it needs, and ends with a row in [experiments/RESULTS.md](experiments/RESULTS.md).
+
+| # | Milestone | Idea | Status |
+|---|---|---|---|
+| 1 | Data + baselines | 5-core filter, leave-one-out split; popularity and SASRec | ⬜ |
+| 2 | Semantic embeddings | Encode item text with a sentence-transformer; item-kNN retrieval | ⬜ |
+| 3 | Semantic IDs (k-means) | Hierarchical k-means → 3-level codes; inspect collisions | ⬜ |
+| 4 | Semantic IDs (RQ-VAE) | TIGER/PLUM-style residual quantization; compare with k-means | ⬜ |
+| 5 | Generative retrieval | Tiny Transformer decodes next-item Semantic IDs with trie-constrained beam search | ⬜ |
+| 6 | LLM-style ranker (optional) | Netflix-style: verbalized history → small LM → catalog scoring head | ⬜ |
+
+### Setup
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+pytest
+```
+
 ## Repo structure
 
 ```
 GenRec/
-├── README.md
-└── *.pdf          # papers (named <Name>-<Year>.pdf)
+├── papers/           # PDFs, named <Name>-<Year>.pdf
+├── notes/            # one note per paper + comparison.md
+├── src/genrec/       # reusable code
+│   ├── data/         #   loading, filtering, splits, sequence datasets
+│   ├── embeddings/   #   item text → embeddings
+│   ├── tokenizers/   #   Semantic ID builders (k-means, RQ-VAE)
+│   ├── models/       #   baselines, SASRec, TIGER-style generator
+│   ├── metrics.py    #   Recall@K, NDCG@K, MRR
+│   └── utils.py      #   seed, device, config loading
+├── configs/          # YAML per experiment
+├── scripts/          # CLI entry points (prepare data, build IDs, train, eval)
+├── notebooks/        # numbered, thin notebooks that import from src
+├── experiments/      # run outputs (gitignored) + RESULTS.md
+├── tests/            # pytest sanity checks
+└── data/             # raw + processed datasets (gitignored)
 ```
-
-Planned additions: per-paper notes, a cross-paper comparison (tokenization, training recipe, serving, metrics), and small hands-on experiments (e.g., a toy RQ-VAE Semantic ID tokenizer plus a generative retriever).

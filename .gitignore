@@ -1,0 +1,16 @@
+# data and run outputs
+data/
+experiments/*/
+*.npy
+*.pt
+*.ckpt
+
+# python
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# os
+.DS_Store
