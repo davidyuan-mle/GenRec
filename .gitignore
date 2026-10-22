@@ -1,5 +1,5 @@
 # data and run outputs
-data/
+/data/
 experiments/*/
 *.npy
 *.pt
