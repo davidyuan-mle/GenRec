@@ -181,7 +181,75 @@ Now let's watch one step happen, on a model small enough to print.
 | Ben | 4, 5, 1, 2, 6, 3 | 4, 5, 1, 2 | (4, 5, 1, 2) → 6 | (4, 5, 1, 2, 6) → 3 |
 | Cat | 6, 1, 2, 3, 4 | 6, 1, 2 | (6, 1, 2) → 3 | (6, 1, 2, 3) → 4 |
 
-**Examples** from the real `NextItemDataset` with `max_len = 4`, stacked into one batch by the real `DataLoader`:
+### How the data is read in, step by step
+
+The walkthrough script feeds these three users through the same code as real training. With `max_len = 4` (it's 50 in real training):
+
+```python
+toy = {"Ann": [1, 2, 3, 4, 5], "Ben": [4, 5, 1, 2, 6, 3], "Cat": [6, 1, 2, 3, 4]}
+tr, va, te = leave_one_out(list(toy.values()))                      # step 1
+tds = NextItemDataset(tr, max_len=4)                                # step 2
+loader = DataLoader(tds, batch_size=3, shuffle=False)               # step 4 (shuffle=True in real training)
+inputs, targets = next(iter(loader))                                # step 3 runs inside this call
+```
+
+**Step 1: `leave_one_out` keeps all but the last two items** for training: `train = [s[:-2] for s in sequences]`. That gives Ann (1, 2, 3), Ben (4, 5, 1, 2) and Cat (6, 1, 2), as in the table above.
+
+**Step 2: `NextItemDataset.__init__` stores those lists.** It keeps only lists with at least 2 items (one to look at, one to predict). All three qualify, so `len(tds) == 3`. Nothing is converted yet: the work happens each time an example is requested.
+
+**Step 3: `NextItemDataset.__getitem__(idx)` builds one example** ([sequences.py:41-45](../src/genrec/data/sequences.py#L41-L45)):
+
+```python
+def __getitem__(self, idx):
+    s = self.seqs[idx][-(self.max_len + 1):]   # (a) keep the most recent max_len + 1 items
+    inputs = left_pad(s[:-1], self.max_len)    # (b) drop the LAST item, pad on the left with 0s
+    targets = left_pad(s[1:], self.max_len)    # (c) drop the FIRST item, pad on the left with 0s
+    return torch.tensor(inputs), torch.tensor(targets)
+```
+
+Tracing Ben (`idx = 1`):
+
+| Line | Code | Ben's value |
+|---|---|---|
+| start | `self.seqs[1]` | `[4, 5, 1, 2]` |
+| (a) | last `max_len + 1 = 5` items | `[4, 5, 1, 2]` (only 4 exist) |
+| (b) | `s[:-1]` | `[4, 5, 1]` |
+| | `left_pad(…, 4)` | **`[0, 4, 5, 1]`** → inputs |
+| (c) | `s[1:]` | `[5, 1, 2]` |
+| | `left_pad(…, 4)` | **`[0, 5, 1, 2]`** → targets |
+
+Lines (b) and (c) cut opposite ends off the same list, so the targets are the inputs **shifted one step**. Each input ends up next to the item that followed it:
+
+```
+s       :     4   5   1   2
+inputs  : 0   4   5   1          ← s without its last item
+targets : 0   5   1   2          ← s without its first item
+              ↑   ↑   ↑
+     "after 4 came 5", "after 5 came 1", "after 1 came 2"
+```
+
+The other two users, by the same steps:
+
+| User | `s` | `s[:-1]` → inputs | `s[1:]` → targets |
+|---|---|---|---|
+| Ann | `[1, 2, 3]` | `[1, 2]` → `[0, 0, 1, 2]` | `[2, 3]` → `[0, 0, 2, 3]` |
+| Cat | `[6, 1, 2]` | `[6, 1]` → `[0, 0, 6, 1]` | `[1, 2]` → `[0, 0, 1, 2]` |
+
+Why `max_len + 1` in line (a)? Take a 10-item history with `max_len = 4`. Line (a) keeps the last **5** items, say `[a, b, c, d, e]`. Then the inputs are `[a, b, c, d]` and the targets are `[b, c, d, e]`: all 4 positions are used, with no padding. Keeping only 4 items would leave one position empty.
+
+**Step 4: `DataLoader` turns examples into a batch.** Each time the training loop asks for the next batch (`for inputs, targets in loader`), the DataLoader:
+
+1. picks `batch_size` indices: here 0, 1, 2, in order. In real training, `shuffle=True` draws a fresh random order every epoch.
+2. calls `tds[0]`, `tds[1]`, `tds[2]`, which runs step 3 three times. Each call returns an `(inputs, targets)` pair of length-4 tensors.
+3. **stacks** them (PyTorch's default "collate" function): the three `inputs` tensors become the rows of one 3 × 4 tensor, and the three `targets` tensors likewise.
+
+```
+tds[0] → ([0, 0, 1, 2], [0, 0, 2, 3])   ─┐
+tds[1] → ([0, 4, 5, 1], [0, 5, 1, 2])    ├─ stack as rows ─→  inputs (3 × 4), targets (3 × 4)
+tds[2] → ([0, 0, 6, 1], [0, 0, 1, 2])   ─┘
+```
+
+The result is the batch the model receives:
 
 ```
 inputs  = [[0, 0, 1, 2],      Ann:  shampoo, conditioner
@@ -193,7 +261,20 @@ targets = [[0, 0, 2, 3],      Ann:  predict conditioner, then hair oil
            [0, 0, 1, 2]]      Cat:  predict shampoo, then conditioner
 ```
 
-Count the non-zero targets: 2 + 3 + 2 = **7 training signals** in this batch.
+Real training uses the same code with `max_len = 50` and `batch_size = 256`. That gives 256 × 50 tensors, 88 batches per epoch, and the last batch is smaller: 22,363 − 87 × 256 = 91 users.
+
+### Counting the training signals
+
+Every **non-zero target** is one quiz, "given what you've seen so far, what comes next?". Read Ann's row column by column. Because of the causal mask (Part 2), position $`t`$ sees only the inputs up to $`t`$:
+
+| Position | Model sees | Must predict | A signal? |
+|---|---|---|---|
+| 0 | PAD | 0 | ✗ padding: nothing to predict |
+| 1 | PAD, PAD | 0 | ✗ |
+| 2 | shampoo | 2, conditioner | ✓ |
+| 3 | shampoo, conditioner | 3, hair oil | ✓ |
+
+A training list of $`n`$ items gives $`n - 1`$ signals, because `s[1:]` has $`n - 1`$ items. Ann (3 items) gives 2, Ben (4) gives 3, and Cat (3) gives 2, for **7 training signals** in this batch. All 7 are answered in **one** forward pass. The loss in 8.7 is their average.
 
 **Model:** the real `SASRec` class, shrunk to `hidden = 4`, 1 layer, 1 head, no dropout. It has 296 learnable numbers in total; the real one has 877,824.
 
