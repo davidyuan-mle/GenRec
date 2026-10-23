@@ -81,6 +81,44 @@ Suppose the model reads the history and outputs $\mathbf{u}_h = (1, 2)$. Each sc
 
 Top-1 recommendation: **conditioner**. The geometry is the whole story: the history vector points in roughly the same direction as the conditioner vector.
 
+### Where does $\mathbf{u}_h$ come from?
+
+$\mathbf{u}_h$ is **not stored or learned directly**. It is **computed** from the history by a model $f$ with learnable weights $\theta$:
+
+$$
+\mathbf{u}_h = f_\theta(h) = f_\theta(i_1, \dots, i_n)
+$$
+
+So two users with the same history get the same $\mathbf{u}_h$, and a brand-new user gets one as soon as they have a history. What gets *learned* are the weights $\theta$, usually together with the item vectors $\mathbf{v}_i$. The choice of $f$ is what distinguishes the models in this guide:
+
+| Model | How $\mathbf{u}_h$ is computed | What's learned |
+|---|---|---|
+| Simplest possible | the average of the history's item vectors | only the $\mathbf{v}_i$ |
+| Semantic kNN (Part 3) | a recency-weighted sum of text embeddings | nothing: the vectors are fixed |
+| SASRec (Part 2) | a Transformer reads the history; $\mathbf{u}_h$ is its output at the last position | the Transformer weights and the item vectors |
+
+**How the learning works.** Training data is a big pile of (history, next item) pairs. For each pair, compute $\mathbf{u}_h$, score every item, and measure the loss $\mathcal{L} = -\log P(\text{true next item} \mid h)$: how surprised the model was by what the user actually did. Then nudge the weights to lower the loss (gradient descent). For the softmax with dot-product scores, the gradient with respect to $\mathbf{u}_h$ has a simple form:
+
+$$
+\frac{\partial \mathcal{L}}{\partial \mathbf{u}_h} = \underbrace{\sum_{i} P(i \mid h) \mathbf{v}_i}_{\text{where the model points now}} - \underbrace{\mathbf{v}_{\text{true}}}_{\text{where it should point}}
+$$
+
+A step against this gradient moves $\mathbf{u}_h$ **toward the true item's vector** and **away from the items the model wrongly believed in**. The same step also pulls $\mathbf{v}_{\text{true}}$ toward $\mathbf{u}_h$.
+
+**Worked example.** Continue the table above, and say the user really did buy the **conditioner**:
+
+| Step | Value |
+|---|---|
+| Where the model points: $0.171 \cdot (1,0) + 0.766 \cdot (0.5,1) + 0.063 \cdot (-1,0.5)$ | $(0.491, 0.798)$ |
+| Gradient: subtract the conditioner $(0.5, 1)$ | $(-0.009, -0.202)$ |
+| New $\mathbf{u}_h$ after one step, learning rate 0.5: $\mathbf{u}_h - 0.5 \times \text{gradient}$ | $(1.004, 2.101)$ |
+| $P(\text{conditioner} \mid h)$ | 0.766 → **0.781** |
+| Loss | 0.266 → **0.247** |
+
+$\mathbf{u}_h$ moved mostly in its second coordinate, the direction where the conditioner differs from the shampoo, and the true item became more likely.
+
+In real training we can't move $\mathbf{u}_h$ directly, because it's the output of $f_\theta$. Instead the gradient flows back through $f_\theta$ (this is **backpropagation**) and adjusts $\theta$, so that *next time* a similar history produces a $\mathbf{u}_h$ closer to the right item. Repeated over thousands of training pairs, the weights and item vectors settle into a geometry where each history points toward what tends to come next. Part 2 shows how SASRec computes $f_\theta$ and trains it this way.
+
 ### Where it struggles
 
 This works well (it's what SASRec does in Part 2), but it has three weaknesses that matter at industrial scale:
