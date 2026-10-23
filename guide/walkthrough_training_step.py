@@ -113,3 +113,31 @@ hdec = tiger.decode(memory, pad, codes[:, :-1])
 per_level = [F.cross_entropy(head(hdec[:, l]), codes[:, l]).item() for l, head in enumerate(tiger.heads)]
 print("memory shape", tuple(memory.shape), "decoder states", tuple(hdec.shape))
 print("per-level loss", per_level, "mean", np.mean(per_level), "ln 4", np.log(4), "model.loss", tiger.loss(hist, tgt).item())
+
+print("\n=== text path for user #17 (section 8.11)")
+from pathlib import Path
+
+from genrec.data.amazon import load_processed
+from genrec.models.baselines import SemanticKNN
+
+emb_path = Path("data/processed/beauty/embeddings/sentence-t5-base.npy")
+sid_path = Path("data/processed/beauty/semantic_ids/rqvae-3x256.npy")
+if not (emb_path.exists() and sid_path.exists()):
+    print("skipped: run scripts/embed_items.py and scripts/train_rqvae.py first")
+else:
+    seqs, items = load_processed("data/processed/beauty")
+    u = seqs[17]
+    for i in u:
+        print(i, "|", items.loc[i, "text"])
+    emb = np.load(emb_path)
+    print("emb[9195][:6]", emb[9195][:6].round(4), "length", np.linalg.norm(emb[9195]).round(4))
+    print("cosine between user #17's items\n", (emb[u] @ emb[u].T).round(3))
+    rand = np.random.default_rng(0).choice(np.arange(1, len(emb)), 2000, replace=False)
+    print("median cosine to random items", np.median(emb[u] @ emb[rand].T, axis=1).round(3))
+    rec = SemanticKNN(emb, 5, 0.5).recommend([u[:3]], 10)[0]
+    print("semantic kNN for the valid question:", [items.loc[j, "title"][:45] for j in rec[:5]])
+    print("rank of true item", u[3], "->", rec.index(u[3]) + 1 if u[3] in rec else "not in top 10")
+    ids = np.load(sid_path)
+    real_tiger = TIGER(ids, max_items=20)
+    for i in u:
+        print("item", i, "Semantic ID", ids[i].tolist(), "tokens", real_tiger.item_tokens[i].tolist())

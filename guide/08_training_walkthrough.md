@@ -22,6 +22,7 @@ Every number in this part was printed by [walkthrough_training_step.py](walkthro
 | 5. Examples | `NextItemDataset` | inputs `[0, …, 0, 8446, 9194]`, targets `[0, …, 0, 9194, 9195]` | 22,363 examples |
 | 6. Batches | `DataLoader` | one row of a 256 × 50 tensor | 88 batches per epoch |
 | 7. Training step | `model.loss` → `backward` → `opt.step` | (toy model below) | 88 steps per epoch |
+| Text path (8.11) | `item_text` → `embed_items.py` → RQ-VAE → TIGER tokens | 5 text strings → 5 × 768 vectors → 5 Semantic IDs | 12,101 items |
 
 ---
 
@@ -474,9 +475,95 @@ for epoch in range(1, cfg["epochs"] + 1):            # up to 50 epochs
 
 ---
 
-## 8.11 The same walk for TIGER
+## 8.11 Where the product text comes in
 
-TIGER (Part 6) uses the same loop, `fit_with_early_stopping`, but prepares its data differently. Using the same toy users, now with hand-made 3-code Semantic IDs ($`K = 4`$):
+Everything so far used **item numbers only**. SASRec never sees a product name: to it, item 9195 is just row 9195 of $`\mathbf{E}`$. The text-based models (semantic kNN, the Semantic ID tokenizers and therefore TIGER) take a second path that starts from the product metadata. Here it is for user #17's real products.
+
+### Text step 1: metadata → one string per item
+
+The metadata file `meta_Beauty.json.gz` has one record per product, separate from the reviews. Item 9195's record, shortened:
+
+```python
+{'asin': 'B006Z8B5HS', 'title': "It's a 10 Miracle Shampoo Plus Keratin, 10 Ounce", 'price': 17.05,
+ 'brand': 'Its a 10', 'categories': [['Beauty', 'Hair Care', 'Shampoos']],
+ 'description': "It's a 10 Miracle Shampoo Plus Keratin restores elasticity to hair, preserves ha…"}
+```
+
+`item_text` ([amazon.py:78-89](../src/genrec/data/amazon.py#L78-L89)) keeps **title, brand, categories and price**, and drops the description. User #17's five strings:
+
+| Item | Text fed to the encoder |
+|---|---|
+| 8446 | `Title: It's A 10 + Keratin Leave-In Conditioner 10 oz.. Brand: Its a 10. Categories: Beauty, Hair Care, Hair & Scalp Treatments. Price: $28.75` |
+| 9194 | `Title: It's A 10 Miracle Oil Plus Keratin for Unisex, 3 Ounce. Brand: Its a 10. Categories: Beauty, Hair Care, Styling Products, Creams, Gels & Lotions. Price: $12.95` |
+| 9195 | `Title: It's a 10 Miracle Shampoo Plus Keratin, 10 Ounce. Brand: Its a 10. Categories: Beauty, Hair Care, Shampoos. Price: $17.05` |
+| 10258 | `Title: It's a 10 Miracle Deep Conditioner Plus Keratin 17.5 oz. Brand: Its a 10. Categories: Beauty, Hair Care, Conditioners. Price: $50.95` |
+| 10347 | `Title: It's A 10 Miracle Leave In Potion Plus Keratin, 3.4 Fluid Ounce. Brand: It&#39;s a 10. Categories: Beauty, Hair Care, Styling Products, Hair Styling Serums. Price: $15.80` |
+
+Real data is messy. Item 10347's brand is stored as `It&#39;s a 10`, with the apostrophe left as an HTML code, while the others say `Its a 10`. We feed it to the encoder as is.
+
+### Text step 2: string → 768 numbers
+
+[embed_items.py](../scripts/embed_items.py) runs every string through sentence-t5-base once, before any training, and saves a 12,102 × 768 matrix: one row per item, with row 0 left as zeros for padding. Row 9195 starts `[-0.0164, -0.0015, -0.0033, -0.0012, 0.0057, -0.0122, …]` and has length 1, so dot products are cosines (Part 3).
+
+The vectors capture that these products are alike:
+
+| Cosine between… | Value |
+|---|---|
+| user #17's items with each other | 0.92 – 0.95 |
+| each of them and a random catalog item (median) | 0.83 – 0.86 |
+| 9195 (Miracle Shampoo) and its nearest neighbour, 9454 "Its A 10 Miracle Volumizing Shampoo" | 0.982 |
+
+### Text step 3a: used directly, by semantic kNN
+
+The kNN recommender (Part 3) works straight from these vectors. For user #17's **validation** question, given (8446, 9194, 9195) and asked to predict 10258 (Deep Conditioner), its top 5 are:
+
+1. Its A 10 Miracle Volumizing Shampoo
+2. It's a 10 Miracle Deep Conditioner Plus Keratin, **5 oz** (item 9196: the target product in a smaller size)
+3. It's A 10 Miracle Moisture Shampoo
+4. It's a 10 miracle leave-in Plus Keratin 10 oz
+5. It's A 10 Miracle Leave In Product, 4 oz
+
+The true item, the **17.5 oz** Deep Conditioner, comes **6th** out of 12,101: a hit for Recall@10. That comes purely from text similarity, with no training. Notice that the same product in another size ranked higher. Text can't tell which size a person will buy.
+
+### Text step 3b: compressed into a Semantic ID
+
+The RQ-VAE (Part 5) turns each 768-number vector into 3 codes plus a tie-breaker. [tiger.py](../src/genrec/models/tiger.py) then turns each code into a token, $`1 + l \cdot 256 + c`$ (Part 6):
+
+| Item | Product | RQ-VAE Semantic ID | TIGER tokens |
+|---|---|---|---|
+| 8446 | Leave-In Conditioner | (**105**, 3, 125, 0) | 106, 260, 638, 769 |
+| 9194 | Miracle Oil | (68, 160, 160, 0) | 69, 417, 673, 769 |
+| 9195 | Miracle Shampoo | (**105**, 43, 238, 0) | 106, 300, 751, 769 |
+| 10258 | Deep Conditioner | (**105**, 213, 251, 0) | 106, 470, 764, 769 |
+| 10347 | Leave-In Potion | (**105**, 112, 135, 0) | 106, 369, 648, 769 |
+
+Four of the five share first code **105**. The Miracle Oil, filed under "Styling Products, Creams, Gels & Lotions", lands in group 68 instead. All five have tie-breaker 0: none of them collided with another item.
+
+So for user #17's **test** question, TIGER's encoder receives (8446, 9194, 9195, 10258) as 16 tokens:
+
+```
+106 260 638 769 | 69 417 673 769 | 106 300 751 769 | 106 470 764 769
+```
+
+and must generate the codes of 10347: first 105, then 112, 135, 0. Having seen three items in group 105, choosing 105 for the first code is the easy part. The other codes are where the sequence model has to work.
+
+### The two paths, side by side
+
+```
+                     ┌─ reviews ──→ item numbers [8446, 9194, …] ──────────────→ SASRec, popularity
+raw data ────────────┤
+                     └─ metadata ─→ text ─→ 768-d vector ─┬──────────────────────→ semantic kNN
+                                     (item_text)  (embed)  └→ RQ-VAE codes → tokens → TIGER
+                                                                (+ the review sequences for order)
+```
+
+TIGER is the one model that uses **both** paths: the review sequences tell it *what order* items come in, and the text-derived codes tell it *what each item is*.
+
+---
+
+## 8.12 The same walk for TIGER
+
+TIGER (Part 6) uses the same loop, `fit_with_early_stopping`, but prepares its data differently. Using the same toy users, now with hand-made 3-code Semantic IDs ($`K = 4`$). In real training these come from the text path above; here they're picked by hand so the numbers stay small:
 
 | Item | Semantic ID | Tokens: $`1 + l \cdot 4 + c`$ |
 |---|---|---|
@@ -532,7 +619,7 @@ Compare with $`\ln 4 = 1.386`$ for a uniform guess over 4 codes. The level-1 val
 
 ---
 
-## 8.12 Check yourself
+## 8.13 Check yourself
 
 <details>
 <summary><b>Q1.</b> A user's training list is (7, 3, 9, 4). With max_len = 4, what are the inputs and targets, and how many training signals are there?</summary>
@@ -562,6 +649,14 @@ No. It would move it by $`0.001 \times 0.0000142 \approx 0.00000001`$, which is 
 <summary><b>Q5.</b> How might the same-day ties in 8.2 make our test scores look better than real-world performance?</summary>
 
 For users with many same-day items, the "next" item is often just the next product ID in alphabetical ASIN order, and products from the same line often have adjacent IDs. A model can learn "after item 9194 comes 9195" from that artifact. Real users don't buy in ASIN order, so a deployed model couldn't rely on it.
+</details>
+
+---
+
+<details>
+<summary><b>Q6.</b> Someone renames product 9195 in the metadata from "Miracle Shampoo" to "Miracle Hair Mask". Which models change, and which don't?</summary>
+
+**SASRec and popularity don't change at all.** They only see the number 9195 and the review sequences. **Semantic kNN changes**: 9195 gets a new text vector, so its neighbours change. **The RQ-VAE Semantic IDs** would change after re-running `embed_items.py` and `train_rqvae.py`, possibly changing some of 9195's codes. Its first code might even stay 105, since it would still be an It's a 10 hair-care product. **TIGER** then sees different tokens for 9195, so it would need retraining.
 </details>
 
 ---
