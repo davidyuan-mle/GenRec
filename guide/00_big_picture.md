@@ -24,17 +24,17 @@ $$
 h = (i_1, i_2, \dots, i_n)
 $$
 
-and the catalog of all items as $\mathcal{I}$, with $N = |\mathcal{I}|$ items in total. The task is to estimate, for every item $i$ in the catalog,
+and the catalog of all items as $`\mathcal{I}`$, with $`N = |\mathcal{I}|`$ items in total. The task is to estimate, for every item $`i`$ in the catalog,
 
 $$
 P(i_{n+1} = i \mid h)
 $$
 
-which reads: "the probability that the user's **next** item is $i$, given their history $h$". We then show the user the $K$ items with the highest probability: a **top-K list**.
+which reads: "the probability that the user's **next** item is $`i`$, given their history $`h`$". We then show the user the $`K`$ items with the highest probability: a **top-K list**.
 
 We judge a recommender by how often the item the user *actually* chose next appears near the top of that list. Part 1 explains the exact scores (Recall@K, NDCG@K, MRR).
 
-> **Key point.** Every model in this repo, from the dumbest to the fanciest, answers the same question: *given $h$, rank the catalog.* The models differ only in **how** they produce that ranking.
+> **Key point.** Every model in this repo, from the dumbest to the fanciest, answers the same question: *given $`h`$, rank the catalog.* The models differ only in **how** they produce that ranking.
 
 ---
 
@@ -44,9 +44,9 @@ The traditional approach: learn one vector per item and one vector per user hist
 
 ### The math
 
-- Each item $i$ gets a learned vector $\mathbf{v}_i \in \mathbb{R}^d$ (a list of $d$ numbers, e.g. $d = 64$).
-- A model reads the history $h$ and produces a vector $\mathbf{u}_h \in \mathbb{R}^d$ that summarizes "what this user wants next".
-- The score of item $i$ is the dot product:
+- Each item $`i`$ gets a learned vector $`\mathbf{v}_i \in \mathbb{R}^d`$ (a list of $`d`$ numbers, e.g. $`d = 64`$).
+- A model reads the history $`h`$ and produces a vector $`\mathbf{u}_h \in \mathbb{R}^d`$ that summarizes "what this user wants next".
+- The score of item $`i`$ is the dot product:
 
 $$
 s(h, i) = \mathbf{u}_h \cdot \mathbf{v}_i = \sum_{j=1}^{d} u_{h,j} ~ v_{i,j}
@@ -62,69 +62,69 @@ Note the sum in the denominator: **it runs over every item in the catalog.**
 
 ### Worked example
 
-A toy catalog of 3 items, with $d = 2$ so we can compute by hand:
+A toy catalog of 3 items, with $`d = 2`$ so we can compute by hand:
 
-| Item | $\mathbf{v}_i$ |
+| Item | $`\mathbf{v}_i`$ |
 |---|---|
-| shampoo | $(1, 0)$ |
-| conditioner | $(0.5, 1)$ |
-| nail polish | $(-1, 0.5)$ |
+| shampoo | $`(1, 0)`$ |
+| conditioner | $`(0.5, 1)`$ |
+| nail polish | $`(-1, 0.5)`$ |
 
-Suppose the model reads the history and outputs $\mathbf{u}_h = (1, 2)$. Each score is the dot product of $\mathbf{u}_h$ with that item's vector:
+Suppose the model reads the history and outputs $`\mathbf{u}_h = (1, 2)`$. Each score is the dot product of $`\mathbf{u}_h`$ with that item's vector:
 
-| Item | Score $s(h,i)$ | $e^{s}$ | $P(i \mid h)$ |
+| Item | Score $`s(h,i)`$ | $`e^{s}`$ | $`P(i \mid h)`$ |
 |---|---|---|---|
-| shampoo | $1 \cdot 1 + 2 \cdot 0 = 1$ | $2.72$ | $2.72 / 15.90 = 0.17$ |
-| conditioner | $1 \cdot 0.5 + 2 \cdot 1 = 2.5$ | $12.18$ | $12.18 / 15.90 = \mathbf{0.77}$ |
-| nail polish | $1 \cdot (-1) + 2 \cdot 0.5 = 0$ | $1.00$ | $1.00 / 15.90 = 0.06$ |
-| | | total $= 15.90$ | total $= 1.00$ |
+| shampoo | $`1 \cdot 1 + 2 \cdot 0 = 1`$ | $`2.72`$ | $`2.72 / 15.90 = 0.17`$ |
+| conditioner | $`1 \cdot 0.5 + 2 \cdot 1 = 2.5`$ | $`12.18`$ | $`12.18 / 15.90 = \mathbf{0.77}`$ |
+| nail polish | $`1 \cdot (-1) + 2 \cdot 0.5 = 0`$ | $`1.00`$ | $`1.00 / 15.90 = 0.06`$ |
+| | | total $`= 15.90`$ | total $`= 1.00`$ |
 
 Top-1 recommendation: **conditioner**. The geometry is the whole story: the history vector points in roughly the same direction as the conditioner vector.
 
-### Where does $\mathbf{u}_h$ come from?
+### Where does $`\mathbf{u}_h`$ come from?
 
-$\mathbf{u}_h$ is **not stored or learned directly**. It is **computed** from the history by a model $f$ with learnable weights $\theta$:
+$`\mathbf{u}_h`$ is **not stored or learned directly**. It is **computed** from the history by a model $`f`$ with learnable weights $`\theta`$:
 
 $$
 \mathbf{u}_h = f_\theta(h) = f_\theta(i_1, \dots, i_n)
 $$
 
-So two users with the same history get the same $\mathbf{u}_h$, and a brand-new user gets one as soon as they have a history. What gets *learned* are the weights $\theta$, usually together with the item vectors $\mathbf{v}_i$. The choice of $f$ is what distinguishes the models in this guide:
+So two users with the same history get the same $`\mathbf{u}_h`$, and a brand-new user gets one as soon as they have a history. What gets *learned* are the weights $`\theta`$, usually together with the item vectors $`\mathbf{v}_i`$. The choice of $`f`$ is what distinguishes the models in this guide:
 
-| Model | How $\mathbf{u}_h$ is computed | What's learned |
+| Model | How $`\mathbf{u}_h`$ is computed | What's learned |
 |---|---|---|
-| Simplest possible | the average of the history's item vectors | only the $\mathbf{v}_i$ |
+| Simplest possible | the average of the history's item vectors | only the $`\mathbf{v}_i`$ |
 | Semantic kNN (Part 3) | a recency-weighted sum of text embeddings | nothing: the vectors are fixed |
-| SASRec (Part 2) | a Transformer reads the history; $\mathbf{u}_h$ is its output at the last position | the Transformer weights and the item vectors |
+| SASRec (Part 2) | a Transformer reads the history; $`\mathbf{u}_h`$ is its output at the last position | the Transformer weights and the item vectors |
 
-**How the learning works.** Training data is a big pile of (history, next item) pairs. For each pair, compute $\mathbf{u}_h$, score every item, and measure the loss $\mathcal{L} = -\log P(\text{true next item} \mid h)$: how surprised the model was by what the user actually did. Then nudge the weights to lower the loss (gradient descent). For the softmax with dot-product scores, the gradient with respect to $\mathbf{u}_h$ has a simple form:
+**How the learning works.** Training data is a big pile of (history, next item) pairs. For each pair, compute $`\mathbf{u}_h`$, score every item, and measure the loss $`\mathcal{L} = -\log P(\text{true next item} \mid h)`$: how surprised the model was by what the user actually did. Then nudge the weights to lower the loss (gradient descent). For the softmax with dot-product scores, the gradient with respect to $`\mathbf{u}_h`$ has a simple form:
 
 $$
 \frac{\partial \mathcal{L}}{\partial \mathbf{u}_h} = \underbrace{\sum_{i} P(i \mid h) \mathbf{v}_i}_{\text{where the model points now}} - \underbrace{\mathbf{v}_{\text{true}}}_{\text{where it should point}}
 $$
 
-A step against this gradient moves $\mathbf{u}_h$ **toward the true item's vector** and **away from the items the model wrongly believed in**. The same step also pulls $\mathbf{v}_{\text{true}}$ toward $\mathbf{u}_h$.
+A step against this gradient moves $`\mathbf{u}_h`$ **toward the true item's vector** and **away from the items the model wrongly believed in**. The same step also pulls $`\mathbf{v}_{\text{true}}`$ toward $`\mathbf{u}_h`$.
 
 **Worked example.** Continue the table above, and say the user really did buy the **conditioner**:
 
 | Step | Value |
 |---|---|
-| Where the model points: $0.171 \cdot (1,0) + 0.766 \cdot (0.5,1) + 0.063 \cdot (-1,0.5)$ | $(0.491, 0.798)$ |
-| Gradient: subtract the conditioner $(0.5, 1)$ | $(-0.009, -0.202)$ |
-| New $\mathbf{u}_h$ after one step, learning rate 0.5: $\mathbf{u}_h - 0.5 \times \text{gradient}$ | $(1.004, 2.101)$ |
-| $P(\text{conditioner} \mid h)$ | 0.766 → **0.781** |
+| Where the model points: $`0.171 \cdot (1,0) + 0.766 \cdot (0.5,1) + 0.063 \cdot (-1,0.5)`$ | $`(0.491, 0.798)`$ |
+| Gradient: subtract the conditioner $`(0.5, 1)`$ | $`(-0.009, -0.202)`$ |
+| New $`\mathbf{u}_h`$ after one step, learning rate 0.5: $`\mathbf{u}_h - 0.5 \times \text{gradient}`$ | $`(1.004, 2.101)`$ |
+| $`P(\text{conditioner} \mid h)`$ | 0.766 → **0.781** |
 | Loss | 0.266 → **0.247** |
 
-$\mathbf{u}_h$ moved mostly in its second coordinate, the direction where the conditioner differs from the shampoo, and the true item became more likely.
+$`\mathbf{u}_h`$ moved mostly in its second coordinate, the direction where the conditioner differs from the shampoo, and the true item became more likely.
 
-In real training we can't move $\mathbf{u}_h$ directly, because it's the output of $f_\theta$. Instead the gradient flows back through $f_\theta$ (this is **backpropagation**) and adjusts $\theta$, so that *next time* a similar history produces a $\mathbf{u}_h$ closer to the right item. Repeated over thousands of training pairs, the weights and item vectors settle into a geometry where each history points toward what tends to come next. Part 2 shows how SASRec computes $f_\theta$ and trains it this way.
+In real training we can't move $`\mathbf{u}_h`$ directly, because it's the output of $`f_\theta`$. Instead the gradient flows back through $`f_\theta`$ (this is **backpropagation**) and adjusts $`\theta`$, so that *next time* a similar history produces a $`\mathbf{u}_h`$ closer to the right item. Repeated over thousands of training pairs, the weights and item vectors settle into a geometry where each history points toward what tends to come next. Part 2 shows how SASRec computes $`f_\theta`$ and trains it this way.
 
 ### Where it struggles
 
 This works well (it's what SASRec does in Part 2), but it has three weaknesses that matter at industrial scale:
 
-1. **One vector per item means a giant table.** The table has $N \times d$ numbers. At $N = 12{,}101$ and $d = 64$ that's 0.8 million numbers, which is fine. At YouTube scale ($N$ in the billions) the table dominates the whole model.
-2. **New items start knowing nothing.** A product added yesterday has a $\mathbf{v}_i$ that is still basically random, because nobody has bought it yet. This is the **cold-start** problem.
+1. **One vector per item means a giant table.** The table has $`N \times d`$ numbers. At $`N = 12{,}101`$ and $`d = 64`$ that's 0.8 million numbers, which is fine. At YouTube scale ($`N`$ in the billions) the table dominates the whole model.
+2. **New items start knowing nothing.** A product added yesterday has a $`\mathbf{v}_i`$ that is still basically random, because nobody has bought it yet. This is the **cold-start** problem.
 3. **Every item learns alone.** Our data has dozens of China Glaze nail-polish shades. Each one gets its own vector, learned only from its own handful of purchases, even though they are almost the same product.
 
 ---
@@ -133,7 +133,7 @@ This works well (it's what SASRec does in Part 2), but it has three weaknesses t
 
 Here is the key idea of this whole repo.
 
-> Instead of scoring all $N$ items, give every item a **short code made of a few small numbers**, chosen so that **similar items get similar codes**. Then train a model to **write out the code of the next item, one number at a time**, the same way a language model writes a sentence one word at a time.
+> Instead of scoring all $`N`$ items, give every item a **short code made of a few small numbers**, chosen so that **similar items get similar codes**. Then train a model to **write out the code of the next item, one number at a time**, the same way a language model writes a sentence one word at a time.
 
 That short code is called a **Semantic ID**. Think of a postal code: `94110` narrows from region (`9`) to area (`94`) to neighbourhood (`94110`). Two houses on the same street share most of the code. Semantic IDs do the same for products: the first number says roughly what kind of product it is, and later numbers narrow it down.
 
@@ -157,19 +157,19 @@ Read it like a postal code:
 
 ### The math: the chain rule of probability
 
-If an item is a tuple of codes $(c_1, c_2, \dots, c_L)$, then "the next item is $i$" means "the next code tuple is $i$'s code tuple". The **chain rule of probability** (true for any random variables, nothing to do with recommenders) splits that into one step per code:
+If an item is a tuple of codes $`(c_1, c_2, \dots, c_L)`$, then "the next item is $`i`$" means "the next code tuple is $`i`$'s code tuple". The **chain rule of probability** (true for any random variables, nothing to do with recommenders) splits that into one step per code:
 
 $$
 P\big(\text{item} = (c_1, c_2) \mid h\big) = \underbrace{P(c_1 \mid h)}_{\text{step 1: which kind of item?}} \times \underbrace{P(c_2 \mid c_1, h)}_{\text{step 2: which one of that kind?}}
 $$
 
-and in general, for $L$ codes:
+and in general, for $`L`$ codes:
 
 $$
 P\big((c_1, \dots, c_L) \mid h\big) = \prod_{l=1}^{L} P(c_l \mid c_1, \dots, c_{l-1}, h)
 $$
 
-The $\prod$ symbol means "multiply all of these together". Each factor is a choice among only $K$ options (in our repo $K = 256$), **not** among all $N$ items.
+The $`\prod`$ symbol means "multiply all of these together". Each factor is a choice among only $`K`$ options (in our repo $`K = 256`$), **not** among all $`N`$ items.
 
 This is exactly how language models like GPT work: the probability of a sentence is the probability of the first word, times the probability of the second word given the first, and so on. Here the "words" are codes and the "sentence" is one item.
 
@@ -177,7 +177,7 @@ This is exactly how language models like GPT work: the probability of a sentence
 
 A toy catalog of 6 items with 2-level codes. In reality the codes are learned (Parts 4–5); here we hand-pick them so they're easy to read:
 
-| Item | $c_1$ (kind) | $c_2$ (which one) | Semantic ID |
+| Item | $`c_1`$ (kind) | $`c_2`$ (which one) | Semantic ID |
 |---|---|---|---|
 | A: shampoo | 0 = hair | 0 | (0, 0) |
 | B: conditioner | 0 = hair | 1 | (0, 1) |
@@ -188,42 +188,42 @@ A toy catalog of 6 items with 2-level codes. In reality the codes are learned (P
 
 Note that (1, 2), (2, 1) and (2, 2) **are not real items**. Keep that in mind; it comes back in 0.4.
 
-The user's history is $h = (\text{A: shampoo}, \text{D: red polish})$. Suppose our trained model outputs these probabilities.
+The user's history is $`h = (\text{A: shampoo}, \text{D: red polish})`$. Suppose our trained model outputs these probabilities.
 
-**Step 1: what kind of item?** $P(c_1 \mid h)$:
+**Step 1: what kind of item?** $`P(c_1 \mid h)`$:
 
-| $c_1$ | hair (0) | nails (1) | fragrance (2) |
+| $`c_1`$ | hair (0) | nails (1) | fragrance (2) |
 |---|---|---|---|
-| $P(c_1 \mid h)$ | 0.5 | 0.4 | 0.1 |
+| $`P(c_1 \mid h)`$ | 0.5 | 0.4 | 0.1 |
 
-**Step 2: which one?** The model sees $h$ **and** the code it just picked. Its answer differs for each first code:
+**Step 2: which one?** The model sees $`h`$ **and** the code it just picked. Its answer differs for each first code:
 
-| | $c_2 = 0$ | $c_2 = 1$ | $c_2 = 2$ |
+| | $`c_2 = 0`$ | $`c_2 = 1`$ | $`c_2 = 2`$ |
 |---|---|---|---|
-| $P(c_2 \mid c_1 = \text{hair}, h)$ | 0.1 | 0.6 | 0.3 |
-| $P(c_2 \mid c_1 = \text{nails}, h)$ | 0.2 | 0.7 | 0.1 |
-| $P(c_2 \mid c_1 = \text{fragrance}, h)$ | 0.9 | 0.05 | 0.05 |
+| $`P(c_2 \mid c_1 = \text{hair}, h)`$ | 0.1 | 0.6 | 0.3 |
+| $`P(c_2 \mid c_1 = \text{nails}, h)`$ | 0.2 | 0.7 | 0.1 |
+| $`P(c_2 \mid c_1 = \text{fragrance}, h)`$ | 0.9 | 0.05 | 0.05 |
 
 **Multiply along each path** (chain rule) to get each item's probability:
 
-| Item | Path | $P(c_1 \mid h) \times P(c_2 \mid c_1, h)$ | Probability | Rank |
+| Item | Path | $`P(c_1 \mid h) \times P(c_2 \mid c_1, h)`$ | Probability | Rank |
 |---|---|---|---|---|
-| B: conditioner | hair → 1 | $0.5 \times 0.6$ | **0.30** | 1 |
-| E: top coat | nails → 1 | $0.4 \times 0.7$ | **0.28** | 2 |
-| C: hair oil | hair → 2 | $0.5 \times 0.3$ | 0.15 | 3 |
-| F: perfume | fragrance → 0 | $0.1 \times 0.9$ | 0.09 | 4 |
-| D: red polish | nails → 0 | $0.4 \times 0.2$ | 0.08 | 5 |
-| A: shampoo | hair → 0 | $0.5 \times 0.1$ | 0.05 | 6 |
+| B: conditioner | hair → 1 | $`0.5 \times 0.6`$ | **0.30** | 1 |
+| E: top coat | nails → 1 | $`0.4 \times 0.7`$ | **0.28** | 2 |
+| C: hair oil | hair → 2 | $`0.5 \times 0.3`$ | 0.15 | 3 |
+| F: perfume | fragrance → 0 | $`0.1 \times 0.9`$ | 0.09 | 4 |
+| D: red polish | nails → 0 | $`0.4 \times 0.2`$ | 0.08 | 5 |
+| A: shampoo | hair → 0 | $`0.5 \times 0.1`$ | 0.05 | 6 |
 
 So the model recommends **conditioner, then top coat**. It's sensible: the user bought shampoo (so conditioner pairs with it) and red polish (so a top coat pairs with it). It also gives low probability to re-buying the same shampoo or polish.
 
-These add up to $0.95$, not $1$. The missing $0.05$ went to code paths that aren't real items: (nails → 2) took $0.4 \times 0.1 = 0.04$, and (fragrance → 1 or 2) took $0.1 \times 0.1 = 0.01$. Remember that leak.
+These add up to $`0.95`$, not $`1`$. The missing $`0.05`$ went to code paths that aren't real items: (nails → 2) took $`0.4 \times 0.1 = 0.04`$, and (fragrance → 1 or 2) took $`0.1 \times 0.1 = 0.01`$. Remember that leak.
 
 ---
 
 ## 0.4 Finding the top items quickly: beam search and the trie
 
-In the toy example we computed all 6 items. In our real data that's impossible. With $L = 4$ codes and $K = 256$ values each there are
+In the toy example we computed all 6 items. In our real data that's impossible. With $`L = 4`$ codes and $`K = 256`$ values each there are
 
 $$
 256^4 \approx 4.3 \text{ billion}
@@ -233,18 +233,18 @@ possible code tuples, and only 12,101 of them are real items. We need a shortcut
 
 ### Beam search
 
-**Beam search** keeps only the $B$ most promising partial codes after each step (the **beam width** $B$) and throws the rest away.
+**Beam search** keeps only the $`B`$ most promising partial codes after each step (the **beam width** $`B`$) and throws the rest away.
 
-Let's redo the toy example with $B = 2$:
+Let's redo the toy example with $`B = 2`$:
 
-| Step | Candidates considered | Keep the top $B = 2$ |
+| Step | Candidates considered | Keep the top $`B = 2`$ |
 |---|---|---|
 | 1 | hair 0.5, nails 0.4, fragrance 0.1 | **hair (0.5)**, **nails (0.4)**. Fragrance is dropped. |
 | 2 | (0,0) 0.05, (0,1) 0.30, (0,2) 0.15, (1,0) 0.08, (1,1) 0.28, (1,2) ✗ | **(0,1) = B, 0.30** and **(1,1) = E, 0.28** |
 
 The top 2 come out right: conditioner, top coat. Instead of scoring every combination, we only expanded 2 prefixes.
 
-**The catch:** beam search is a *shortcut*, not an exact search. Perfume F (0.09) has a *higher* probability than red polish D (0.08), but F could never be found with $B = 2$, because its first step (fragrance, 0.1) was already dropped. In practice we use a beam at least as wide as the number of recommendations we want; in our repo $B = 20$ for top-20 lists.
+**The catch:** beam search is a *shortcut*, not an exact search. Perfume F (0.09) has a *higher* probability than red polish D (0.08), but F could never be found with $`B = 2`$, because its first step (fragrance, 0.1) was already dropped. In practice we use a beam at least as wide as the number of recommendations we want; in our repo $`B = 20`$ for top-20 lists.
 
 ### The trie: never generate a non-existent item
 
@@ -265,7 +265,7 @@ At every step we look up the prefix generated so far in the trie, and set the pr
 
 ### A practical detail: logs instead of products
 
-With 4 levels, the probabilities being multiplied get tiny. Real code adds **log-probabilities** instead, which is equivalent because $\log(a \times b) = \log a + \log b$, and it avoids numbers too small for a computer to store accurately:
+With 4 levels, the probabilities being multiplied get tiny. Real code adds **log-probabilities** instead, which is equivalent because $`\log(a \times b) = \log a + \log b`$, and it avoids numbers too small for a computer to store accurately:
 
 $$
 \log P\big((c_1, \dots, c_L) \mid h\big) = \sum_{l=1}^{L} \log P(c_l \mid c_{\lt l}, h)
@@ -281,7 +281,7 @@ Remember the three weaknesses of Approach 1 from 0.2. Here's how Semantic IDs ad
 
 | | Approach 1: score every item | Approach 2: generate the Semantic ID |
 |---|---|---|
-| **Item vocabulary** | one vector per item: $N$ vectors (billions at YouTube) | $L \times K$ code tokens: $4 \times 256 = 1{,}024$ in our repo, **no matter how many items** |
+| **Item vocabulary** | one vector per item: $`N`$ vectors (billions at YouTube) | $`L \times K`$ code tokens: $`4 \times 256 = 1{,}024`$ in our repo, **no matter how many items** |
 | **New items** | random vector until people buy it | gets a meaningful ID on day one, computed from its text |
 | **Similar items** | each learns alone | share code prefixes, so they share what the model learned |
 | **Fits into an LLM?** | awkward: a separate giant table | natural: codes are just extra "words" in the vocabulary (this is PLUM's main point) |
@@ -345,13 +345,13 @@ Roughly 1 in 13 users' true next item appears in SASRec's top 10, out of 12,101 
 
 **Q1.** In Approach 1, why does the softmax denominator make large catalogs expensive?
 
-It sums $e^{s(h,i')}$ over **every** item in the catalog, so the model has to compute $N$ scores for each user. With billions of items that's both the compute cost and the cost of storing $N$ item vectors.
+It sums $`e^{s(h,i')}`$ over **every** item in the catalog, so the model has to compute $`N`$ scores for each user. With billions of items that's both the compute cost and the cost of storing $`N`$ item vectors.
 
 
 
-**Q2.** In the toy example, the user had history (shampoo, red polish). If the model had given $P(c_1 = \text{fragrance} \mid h) = 0.45$ and $P(c_1 = \text{nails} \mid h) = 0.05$ (hair still 0.5), which two items would beam search with $B = 2$ return?
+**Q2.** In the toy example, the user had history (shampoo, red polish). If the model had given $`P(c_1 = \text{fragrance} \mid h) = 0.45`$ and $`P(c_1 = \text{nails} \mid h) = 0.05`$ (hair still 0.5), which two items would beam search with $`B = 2`$ return?
 
-Step 1 keeps hair (0.5) and fragrance (0.45). Step 2 candidates: (0,0) 0.05, (0,1) 0.30, (0,2) 0.15, (2,0) $0.45 \times 0.9 = 0.405$. The trie removes (2,1) and (2,2). Top 2: **F perfume (0.405)** and **B conditioner (0.30)**.
+Step 1 keeps hair (0.5) and fragrance (0.45). Step 2 candidates: (0,0) 0.05, (0,1) 0.30, (0,2) 0.15, (2,0) $`0.45 \times 0.9 = 0.405`$. The trie removes (2,1) and (2,2). Top 2: **F perfume (0.405)** and **B conditioner (0.30)**.
 
 
 
@@ -380,15 +380,15 @@ Beam search only decides **which** paths to keep; it can still keep a path that 
 | Term | Meaning |
 |---|---|
 | **Sequential recommendation** | predicting a user's next item from the ordered list of their past items |
-| **Top-K list** | the $K$ items a model ranks highest for a user |
+| **Top-K list** | the $`K`$ items a model ranks highest for a user |
 | **Embedding** | a list of numbers (vector) representing something, such as an item, a user, or a piece of text |
-| **Softmax** | turns any list of scores into probabilities: $e^{s_i} / \sum_j e^{s_j}$ |
+| **Softmax** | turns any list of scores into probabilities: $`e^{s_i} / \sum_j e^{s_j}`$ |
 | **Cold start** | the difficulty of recommending items (or users) with no interaction history |
 | **Semantic ID** | a short tuple of small integers per item, where similar items share prefixes |
-| **Codebook** | the $K$ possible values at one level of a Semantic ID (and, in Parts 4–5, the vector each value stands for) |
+| **Codebook** | the $`K`$ possible values at one level of a Semantic ID (and, in Parts 4–5, the vector each value stands for) |
 | **Collision** | two different items receiving the same code tuple |
-| **Chain rule (probability)** | $P(a, b) = P(a) \times P(b \mid a)$, extended to any number of steps |
-| **Beam search** | step-by-step decoding that keeps only the $B$ best partial sequences at each step |
+| **Chain rule (probability)** | $`P(a, b) = P(a) \times P(b \mid a)`$, extended to any number of steps |
+| **Beam search** | step-by-step decoding that keeps only the $`B`$ best partial sequences at each step |
 | **Trie** | a prefix tree; here, all valid Semantic IDs, used to block invalid codes during decoding |
 | **Generative retrieval** | retrieving items by generating their identifiers instead of scoring the whole catalog |
 

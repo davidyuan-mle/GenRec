@@ -16,7 +16,7 @@ We use the **Amazon Beauty** dataset (2014 release, from Stanford SNAP). It cont
 | `asin` | `B000W30RP8` | the **item** (Amazon's product ID) |
 | `unixReviewTime` | `1369008000` (2013-05-20) | the **time**, used to put items in order |
 
-A review is not a purchase, but people mostly review things they bought, so "user reviewed item at time $t$" is used as "user interacted with item at time $t$". This is the standard benchmark for Semantic-ID papers (TIGER evaluates on it), which is why we use it.
+A review is not a purchase, but people mostly review things they bought, so "user reviewed item at time $`t`$" is used as "user interacted with item at time $`t`$". This is the standard benchmark for Semantic-ID papers (TIGER evaluates on it), which is why we use it.
 
 There's also a **metadata** file with each product's title, brand, categories, price and description. Part 3 turns that text into vectors.
 
@@ -32,15 +32,15 @@ The catch: removing users can push items below 5 interactions, and removing thos
 
 ### The math
 
-Let $D$ be the set of (user, item) interactions. Define the counts $n_u(D)$ = interactions of user $u$ and $n_i(D)$ = interactions of item $i$. The $k$-core is the largest subset $D_k \subseteq D$ such that
+Let $`D`$ be the set of (user, item) interactions. Define the counts $`n_u(D)`$ = interactions of user $`u`$ and $`n_i(D)`$ = interactions of item $`i`$. The $`k`$-core is the largest subset $`D_k \subseteq D`$ such that
 
 $$
 n_u(D_k) \ge k \quad  \text{for every user in } D_k, \qquad n_i(D_k) \ge k \quad  \text{for every item in } D_k
 $$
 
-The loop "drop everything below $k$, recount, repeat" finds it.
+The loop "drop everything below $`k`$, recount, repeat" finds it.
 
-### Worked example ($k = 2$)
+### Worked example ($`k = 2`$)
 
 | Round | Interactions | Problem | Action |
 |---|---|---|---|
@@ -48,11 +48,11 @@ The loop "drop everything below $k$, recount, repeat" finds it.
 | 1 | u1–a, u1–b, u2–a, u2–b | item c now has 0, but it's already gone with u3 | nothing left to drop |
 | done | 4 interactions, users {u1, u2}, items {a, b} | | |
 
-In this small case one round was enough. A trickier case: if u3 had also reviewed item `a`, dropping u3 would lower `a`'s count, which could push `a` below $k$, which could push u1 below $k$, and so on. That's why the code loops.
+In this small case one round was enough. A trickier case: if u3 had also reviewed item `a`, dropping u3 would lower `a`'s count, which could push `a` below $`k`$, which could push u1 below $`k`$, and so on. That's why the code loops.
 
 ### In our code and data
 
-- [amazon.py](../src/genrec/data/amazon.py): `kcore_filter` runs the loop. `build_dataset` then sorts each user's items by time and renumbers items as $1 \dots N$, keeping $0$ for padding (Part 2).
+- [amazon.py](../src/genrec/data/amazon.py): `kcore_filter` runs the loop. `build_dataset` then sorts each user's items by time and renumbers items as $`1 \dots N`$, keeping $`0`$ for padding (Part 2).
 - [test_data.py](../tests/test_data.py): `test_kcore_filter_is_iterative` checks the "removal causes more removal" case.
 
 After filtering, our dataset is:
@@ -79,15 +79,15 @@ To test a recommender honestly, we must hide some answers from it during trainin
 
 ### The math
 
-For a user with history $(i_1, i_2, \dots, i_n)$:
+For a user with history $`(i_1, i_2, \dots, i_n)`$:
 
 | Split | Model sees (input) | Must predict (target) |
 |---|---|---|
-| train | $(i_1, \dots, i_{n-2})$ | each next item inside this prefix |
-| validation | $(i_1, \dots, i_{n-2})$ | $i_{n-1}$ |
-| test | $(i_1, \dots, i_{n-1})$ | $i_n$ |
+| train | $`(i_1, \dots, i_{n-2})`$ | each next item inside this prefix |
+| validation | $`(i_1, \dots, i_{n-2})`$ | $`i_{n-1}`$ |
+| test | $`(i_1, \dots, i_{n-1})`$ | $`i_n`$ |
 
-The 5-core guarantees $n \ge 5$, so every user has at least 3 training items.
+The 5-core guarantees $`n \ge 5`$, so every user has at least 3 training items.
 
 ### Worked example: user #17 from Part 0
 
@@ -127,7 +127,7 @@ We use three metrics. Each is computed per user and then averaged over all users
 
 ### The math
 
-Let $\text{rank}$ be the position of the true item in the model's list (1 = top), or "not found".
+Let $`\text{rank}`$ be the position of the true item in the model's list (1 = top), or "not found".
 
 **Recall@K** (also called Hit Rate@K): was it in the top K?
 
@@ -141,9 +141,9 @@ $$
 \text{NDCG@}K = \begin{cases} \dfrac{1}{\log_2(\text{rank} + 1)} & \text{if rank} \le K \cr  0 & \text{otherwise} \end{cases}
 $$
 
-The "discount" $\frac{1}{\log_2(\text{rank}+1)}$ is 1 at rank 1, 0.63 at rank 2, 0.5 at rank 3, 0.39 at rank 5, and 0.29 at rank 10. It falls quickly at first and then slowly.
+The "discount" $`\frac{1}{\log_2(\text{rank}+1)}`$ is 1 at rank 1, 0.63 at rank 2, 0.5 at rank 3, 0.39 at rank 5, and 0.29 at rank 10. It falls quickly at first and then slowly.
 
-> **Why does it simplify?** The general NDCG divides the "gain" of your list by the gain of a perfect list (called IDCG). With one relevant item, a perfect list puts it at rank 1, so IDCG $= 1/\log_2 2 = 1$, and dividing by 1 changes nothing.
+> **Why does it simplify?** The general NDCG divides the "gain" of your list by the gain of a perfect list (called IDCG). With one relevant item, a perfect list puts it at rank 1, so IDCG $`= 1/\log_2 2 = 1`$, and dividing by 1 changes nothing.
 
 **MRR** (Mean Reciprocal Rank): one over the rank.
 
@@ -165,8 +165,8 @@ Three users, each with a top-5 list:
 
 | User | Recall@1 | Recall@5 | NDCG@5 | MRR |
 |---|---|---|---|---|
-| 1 | 0 | 1 | $1/\log_2 3 = 0.631$ | $1/2 = 0.500$ |
-| 2 | 0 | 1 | $1/\log_2 6 = 0.387$ | $1/5 = 0.200$ |
+| 1 | 0 | 1 | $`1/\log_2 3 = 0.631`$ | $`1/2 = 0.500`$ |
+| 2 | 0 | 1 | $`1/\log_2 6 = 0.387`$ | $`1/5 = 0.200`$ |
 | 3 | 0 | 0 | 0 | 0 |
 | **Average** | **0.000** | **0.667** | **0.339** | **0.233** |
 
@@ -174,15 +174,15 @@ Reading the averages: two thirds of users got their item in the top 5 (Recall@5 
 
 ### How to read our numbers
 
-Our catalog has 12,101 items. A model that guesses randomly would get Recall@10 $\approx 10 / 12{,}101 \approx 0.0008$. So when SASRec gets **Recall@10 = 0.0753**, it puts the true next item in its top 10 for about 1 user in 13. That is roughly **90× better than random**, even though the number looks small.
+Our catalog has 12,101 items. A model that guesses randomly would get Recall@10 $`\approx 10 / 12{,}101 \approx 0.0008`$. So when SASRec gets **Recall@10 = 0.0753**, it puts the true next item in its top 10 for about 1 user in 13. That is roughly **90× better than random**, even though the number looks small.
 
 Values around 0.03–0.08 for Recall@10 are normal on this benchmark. Compare models with each other, not with 1.0.
 
 ### In our code
 
-- [metrics.py](../src/genrec/metrics.py): `recall_at_k`, `ndcg_at_k`, `mrr`, and `evaluate`, which computes all of them for $K \in \lbrace 5, 10, 20\rbrace $.
+- [metrics.py](../src/genrec/metrics.py): `recall_at_k`, `ndcg_at_k`, `mrr`, and `evaluate`, which computes all of them for $`K \in \lbrace 5, 10, 20\rbrace `$.
 - Every model has the same method, `recommend(histories, k)`, which returns top-K lists. That's what makes all models comparable with the same `evaluate` call.
-- One detail: models return only their top 20 items, so our MRR is really "MRR@20": a true item at rank 21 or lower counts as 0. That's standard practice, and the difference is tiny because $1/21$ is already small.
+- One detail: models return only their top 20 items, so our MRR is really "MRR@20": a true item at rank 21 or lower counts as 0. That's standard practice, and the difference is tiny because $`1/21`$ is already small.
 - [scripts/train.py](../scripts/train.py) writes `metrics.json` for both validation and test into `experiments/<run>/`, and [RESULTS.md](../experiments/RESULTS.md) collects the test numbers.
 
 ---
@@ -199,7 +199,7 @@ Validation: sees (a, b, c, d), predicts e. Test: sees (a, b, c, d, e), predicts 
 <summary><b>Q2.</b> Model X puts the true item at rank 1 for half the users and misses the rest. Model Y puts it at rank 3 for every user. Compare Recall@5, NDCG@5 and MRR.</summary>
 
 X: Recall@5 = 0.5, NDCG@5 = 0.5 × 1 = 0.5, MRR = 0.5 × 1 = 0.5.
-Y: Recall@5 = 1.0, NDCG@5 = $1/\log_2 4$ = 0.5, MRR = 1/3 ≈ 0.333.
+Y: Recall@5 = 1.0, NDCG@5 = $`1/\log_2 4`$ = 0.5, MRR = 1/3 ≈ 0.333.
 Same NDCG, but Recall prefers Y and MRR prefers X. Different metrics reward different behaviour, which is why we report several.
 </details>
 

@@ -27,9 +27,9 @@ No prior recommender-systems knowledge is assumed. You need high-school algebra,
 
 | Symbol | Meaning |
 |---|---|
-| $\mathcal{I}$, $N$ | the set of all items (the catalog), and how many there are ($N = 12{,}101$ in our data) |
-| $h = (i_1, \dots, i_n)$ | one user's history: the items they interacted with, oldest first |
-| $\mathbf{v}$ (bold) | a vector, e.g. $\mathbf{v}_i \in \mathbb{R}^d$ is item $i$'s vector of $d$ numbers |
-| $\mathbf{a} \cdot \mathbf{b}$ | dot product: multiply matching entries and add them up |
-| $P(A \mid B)$ | probability of $A$ given that we know $B$ |
-| $(c_1, \dots, c_L)$ | a Semantic ID: $L$ discrete codes, each a whole number from $0$ to $K-1$ |
+| $`\mathcal{I}`$, $`N`$ | the set of all items (the catalog), and how many there are ($`N = 12{,}101`$ in our data) |
+| $`h = (i_1, \dots, i_n)`$ | one user's history: the items they interacted with, oldest first |
+| $`\mathbf{v}`$ (bold) | a vector, e.g. $`\mathbf{v}_i \in \mathbb{R}^d`$ is item $`i`$'s vector of $`d`$ numbers |
+| $`\mathbf{a} \cdot \mathbf{b}`$ | dot product: multiply matching entries and add them up |
+| $`P(A \mid B)`$ | probability of $`A`$ given that we know $`B`$ |
+| $`(c_1, \dots, c_L)`$ | a Semantic ID: $`L`$ discrete codes, each a whole number from $`0`$ to $`K-1`$ |

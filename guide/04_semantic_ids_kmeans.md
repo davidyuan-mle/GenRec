@@ -14,8 +14,8 @@ A familiar example: old GIF images could only use **256 colours**. Each pixel's 
 
 Semantic IDs do the same for items:
 
-- the "true colour" is the item's 768-number embedding $\mathbf{e}_i$,
-- the "palette" is a **codebook** of $K$ representative vectors,
+- the "true colour" is the item's 768-number embedding $`\mathbf{e}_i`$,
+- the "palette" is a **codebook** of $`K`$ representative vectors,
 - the stored "index" is the item's **code**.
 
 One code from a palette of 256 is too coarse to tell 12,101 items apart. So we'll use **several codes per item**, each one refining the last.
@@ -26,7 +26,7 @@ One code from a palette of 256 is too coarse to tell 12,101 items apart. So we'l
 
 ### The math
 
-Given points $\mathbf{x}_1, \dots, \mathbf{x}_n$, k-means looks for $K$ **centroids** $\mu_1, \dots, \mu_K$ (the codebook) and an assignment $c(j) \in \lbrace 0, \dots, K-1\rbrace $ of each point to one centroid. The goal is to make each point as close as possible to its centroid:
+Given points $`\mathbf{x}_1, \dots, \mathbf{x}_n`$, k-means looks for $`K`$ **centroids** $`\mu_1, \dots, \mu_K`$ (the codebook) and an assignment $`c(j) \in \lbrace 0, \dots, K-1\rbrace `$ of each point to one centroid. The goal is to make each point as close as possible to its centroid:
 
 $$
 \min_{\mu,~ c} \quad  \sum_{j=1}^{n} \big\Vert \mathbf{x}_j - \mu_{c(j)}\big\Vert ^2
@@ -34,22 +34,22 @@ $$
 
 That's the total squared distance, also called the **quantization error**. The standard algorithm (**Lloyd's algorithm**) alternates two easy steps until nothing changes:
 
-1. **Assign:** send each point to its nearest centroid, $c(j) = \arg\min_k \Vert \mathbf{x}_j - \mu_k\Vert ^2$.
-2. **Update:** move each centroid to the average of its points, $\mu_k = \text{mean}\lbrace \mathbf{x}_j : c(j) = k\rbrace $.
+1. **Assign:** send each point to its nearest centroid, $`c(j) = \arg\min_k \Vert \mathbf{x}_j - \mu_k\Vert ^2`$.
+2. **Update:** move each centroid to the average of its points, $`\mu_k = \text{mean}\lbrace \mathbf{x}_j : c(j) = k\rbrace `$.
 
 Each step can only lower the error, so it always settles. It may settle in a *local* optimum, which depends on the starting centroids.
 
-### Worked example (1-D, $K = 2$)
+### Worked example (1-D, $`K = 2`$)
 
-Points: $1, 2, 3, 10, 11, 12$. Deliberately bad start: $\mu_0 = 1$, $\mu_1 = 2$.
+Points: $`1, 2, 3, 10, 11, 12`$. Deliberately bad start: $`\mu_0 = 1`$, $`\mu_1 = 2`$.
 
-| Round | Centroids $(\mu_0, \mu_1)$ | Assign | Update |
+| Round | Centroids $`(\mu_0, \mu_1)`$ | Assign | Update |
 |---|---|---|---|
-| 1 | (1, 2) | 1 → 0; everything else is closer to 2 → 1 | $\mu_0 = 1$, $\mu_1 = (2+3+10+11+12)/5 = 7.6$ |
-| 2 | (1, 7.6) | 1, 2, 3 → 0 (e.g. 3 is 2 from 1 and 4.6 from 7.6); 10, 11, 12 → 1 | $\mu_0 = 2$, $\mu_1 = 11$ |
+| 1 | (1, 2) | 1 → 0; everything else is closer to 2 → 1 | $`\mu_0 = 1`$, $`\mu_1 = (2+3+10+11+12)/5 = 7.6`$ |
+| 2 | (1, 7.6) | 1, 2, 3 → 0 (e.g. 3 is 2 from 1 and 4.6 from 7.6); 10, 11, 12 → 1 | $`\mu_0 = 2`$, $`\mu_1 = 11`$ |
 | 3 | (2, 11) | same as before | no change: **done** |
 
-Final codebook $\lbrace 2, 11\rbrace $. Points 1–3 get code 0, points 10–12 get code 1. Each point is now stored as one bit, at the cost of being "rounded" to 2 or 11.
+Final codebook $`\lbrace 2, 11\rbrace `$. Points 1–3 get code 0, points 10–12 get code 1. Each point is now stored as one bit, at the cost of being "rounded" to 2 or 11.
 
 ---
 
@@ -61,13 +61,13 @@ After one round of k-means, each item is "rounded" to its centroid, and there's 
 
 ### The math
 
-Start with $\mathbf{r}_0 = \mathbf{x}$ (the item's embedding). For each level $l = 1, \dots, L$, with its own codebook $\lbrace \mu^{(l)}_k\rbrace $:
+Start with $`\mathbf{r}_0 = \mathbf{x}`$ (the item's embedding). For each level $`l = 1, \dots, L`$, with its own codebook $`\lbrace \mu^{(l)}_k\rbrace `$:
 
 $$
 c_l = \arg\min_k \big\Vert \mathbf{r}_{l-1} - \mu^{(l)}_k\big\Vert , \qquad \mathbf{r}_l = \mathbf{r}_{l-1} - \mu^{(l)}_{c_l}
 $$
 
-The Semantic ID is $(c_1, \dots, c_L)$, and the item's **reconstruction** (its quantized vector) is the sum of the chosen centroids:
+The Semantic ID is $`(c_1, \dots, c_L)`$, and the item's **reconstruction** (its quantized vector) is the sum of the chosen centroids:
 
 $$
 \hat{\mathbf{x}} = \mu^{(1)}_{c_1} + \mu^{(2)}_{c_2} + \dots + \mu^{(L)}_{c_L}
@@ -75,9 +75,9 @@ $$
 
 Each level's codebook is learned by running k-means on the residuals of **all** items at that level. That means code 5 at level 2 means the same *correction* no matter what the level-1 code was. OneRec reports using this method under the name **RQ-KMeans**.
 
-### Worked example (2-D, 3 levels, $K = 4$)
+### Worked example (2-D, 3 levels, $`K = 4`$)
 
-Item $\mathbf{x} = (3.2, 0.9)$, with codebooks that get finer at each level:
+Item $`\mathbf{x} = (3.2, 0.9)`$, with codebooks that get finer at each level:
 
 | Level | Codebook (codes 0, 1, 2, 3) | Residual in | Nearest code | Residual out |
 |---|---|---|---|---|
@@ -85,33 +85,33 @@ Item $\mathbf{x} = (3.2, 0.9)$, with codebooks that get finer at each level:
 | 2 | (0,0), (1,0), **(0,1)**, (1,1) | (0.2, 0.9) | **2** → (0, 1), squared distance 0.05 | (0.2, −0.1) |
 | 3 | (0,0), **(0.25,0)**, (0,0.25), (0.25,0.25) | (0.2, −0.1) | **1** → (0.25, 0), squared distance 0.0125 | (−0.05, −0.1) |
 
-- **Semantic ID:** $(1, 2, 1)$
-- **Reconstruction:** $(3, 0) + (0, 1) + (0.25, 0) = (3.25, 1.0)$, versus the true $(3.2, 0.9)$
+- **Semantic ID:** $`(1, 2, 1)`$
+- **Reconstruction:** $`(3, 0) + (0, 1) + (0.25, 0) = (3.25, 1.0)`$, versus the true $`(3.2, 0.9)`$
 - The error shrank at every level: squared distance 0.85, then 0.05, then 0.0125.
 
 ### How many IDs are possible?
 
-With $L$ levels of $K$ codes there are $K^L$ possible IDs. With $K = 256$ and $L = 3$ that's $256^3 \approx 16.8$ million, far more than 12,101 items. So in principle every item could get its own ID. In practice similar items get pulled to the same codes, which brings us to collisions.
+With $`L`$ levels of $`K`$ codes there are $`K^L`$ possible IDs. With $`K = 256`$ and $`L = 3`$ that's $`256^3 \approx 16.8`$ million, far more than 12,101 items. So in principle every item could get its own ID. In practice similar items get pulled to the same codes, which brings us to collisions.
 
 ---
 
 ## 4.4 The alternative: hierarchical k-means (a tree)
 
-Instead of quantizing residuals, **hierarchical k-means** builds a tree. It clusters all items into $K$ groups, then runs a separate k-means **inside each group**, and so on.
+Instead of quantizing residuals, **hierarchical k-means** builds a tree. It clusters all items into $`K`$ groups, then runs a separate k-means **inside each group**, and so on.
 
 | | Residual k-means | Hierarchical k-means |
 |---|---|---|
 | Level-2 codebook | one, shared by all items | a separate one inside each level-1 group |
 | Meaning of "code 5 at level 2" | the same correction everywhere | something different under every parent |
-| Small groups | still quantized | a group with $\le K$ items just numbers its members 0, 1, 2, … |
+| Small groups | still quantized | a group with $`\le K`$ items just numbers its members 0, 1, 2, … |
 
-That last row matters. Once a group has $K$ or fewer items, there's nothing left to cluster. Our implementation (like k-means with $K \ge n$) gives each item its own code, which is a label with no meaning. With $K = 256$, level-1 groups average about 47 items, so **level 2 already numbers individual items and level 3 is unused**. The tree has zero collisions, but only by construction.
+That last row matters. Once a group has $`K`$ or fewer items, there's nothing left to cluster. Our implementation (like k-means with $`K \ge n`$) gives each item its own code, which is a label with no meaning. With $`K = 256`$, level-1 groups average about 47 items, so **level 2 already numbers individual items and level 3 is unused**. The tree has zero collisions, but only by construction.
 
 ---
 
 ## 4.5 Collisions and the tie-breaker code
 
-A **collision** is two or more items with exactly the same code tuple. With residual k-means $3 \times 256$, 11.4% of our items share their ID with at least one other item. The largest groups, from notebook 03:
+A **collision** is two or more items with exactly the same code tuple. With residual k-means $`3 \times 256`$, 11.4% of our items share their ID with at least one other item. The largest groups, from notebook 03:
 
 | Shared ID | Items |
 |---|---|
@@ -134,7 +134,7 @@ The share of items whose ID is shared with another item. Lower is better.
 
 ### 2. Codebook usage (perplexity)
 
-If a level has 256 codes but almost every item uses the same 5, that level carries little information. **Perplexity** measures the *effective* number of codes in use. If code $k$ is used by a fraction $p_k$ of items:
+If a level has 256 codes but almost every item uses the same 5, that level carries little information. **Perplexity** measures the *effective* number of codes in use. If code $`k`$ is used by a fraction $`p_k`$ of items:
 
 $$
 \text{perplexity} = \exp\Big(-\sum_k p_k \log p_k\Big)
@@ -142,7 +142,7 @@ $$
 
 The expression in brackets is the **entropy**. Examples with 4 codes:
 
-| Usage $(p_0, p_1, p_2, p_3)$ | Perplexity | Reading |
+| Usage $`(p_0, p_1, p_2, p_3)`$ | Perplexity | Reading |
 |---|---|---|
 | (0.25, 0.25, 0.25, 0.25) | 4.00 | all four codes fully used |
 | (0.97, 0.01, 0.01, 0.01) | 1.18 | effectively one code |
@@ -153,7 +153,7 @@ For all items sharing a prefix (say, the same level-1 code), what share belong t
 
 ### 4. Retrieval signal kept
 
-Run Part 3's semantic kNN on the **reconstructions** $\hat{\mathbf{x}}$ instead of the original embeddings. The drop in score shows how much useful detail quantization threw away.
+Run Part 3's semantic kNN on the **reconstructions** $`\hat{\mathbf{x}}`$ instead of the original embeddings. The drop in score shows how much useful detail quantization threw away.
 
 ---
 
@@ -163,16 +163,16 @@ Run Part 3's semantic kNN on the **reconstructions** $\hat{\mathbf{x}}$ instead 
 
 | Tokenizer | Unique IDs | Collision rate | Perplexity, levels 1 / 2 / 3 | kNN valid NDCG@10 |
 |---|---|---|---|---|
-| Residual, $K = 32$ | 7,278 | 61.1% | 30 / 28 / 28 | 0.0089 |
-| Residual, $K = 64$ | 9,697 | 33.2% | 57 / 53 / 49 | 0.0129 |
-| Residual, $K = 128$ | 10,975 | 16.7% | 115 / 97 / 88 | 0.0147 |
-| **Residual, $K = 256$** | **11,354** | **11.4%** | **228 / 127 / 49** | **0.0157** |
-| Hierarchical, $K = 32$ | 11,971 | 1.7% | 30 / 32 / 22 | 0.0306 |
-| Hierarchical, $K = 256$ | 12,101 | 0% | 228 / 76 / **1** | 0.0345 |
+| Residual, $`K = 32`$ | 7,278 | 61.1% | 30 / 28 / 28 | 0.0089 |
+| Residual, $`K = 64`$ | 9,697 | 33.2% | 57 / 53 / 49 | 0.0129 |
+| Residual, $`K = 128`$ | 10,975 | 16.7% | 115 / 97 / 88 | 0.0147 |
+| **Residual, $`K = 256`$** | **11,354** | **11.4%** | **228 / 127 / 49** | **0.0157** |
+| Hierarchical, $`K = 32`$ | 11,971 | 1.7% | 30 / 32 / 22 | 0.0306 |
+| Hierarchical, $`K = 256`$ | 12,101 | 0% | 228 / 76 / **1** | 0.0345 |
 | *(raw embeddings, no quantization)* | | | | *0.0346* |
 
-- A bigger $K$ means fewer collisions and better kNN.
-- At $K = 256$ the residual tokenizer's **3rd level is underused** (perplexity 49 of 256): the leftovers at that depth are small.
+- A bigger $`K`$ means fewer collisions and better kNN.
+- At $`K = 256`$ the residual tokenizer's **3rd level is underused** (perplexity 49 of 256): the leftovers at that depth are small.
 - Hierarchical looks almost perfect, but its last levels just number items (perplexity → 1). Its reconstruction is nearly the item itself, so it hasn't really compressed anything. We carry **residual 3×256** forward.
 
 ### What prefixes mean
@@ -198,7 +198,7 @@ Why so large a drop, when the average reconstruction cosine is a high-sounding *
 |---|---|
 | nearest neighbour | 0.955 |
 | 10th nearest neighbour | 0.928 |
-| own reconstruction $\hat{\mathbf{x}}$ | 0.970 |
+| own reconstruction $`\hat{\mathbf{x}}`$ | 0.970 |
 
 **The rounding error is about as big as the distance to the item's nearest neighbour.** Once quantized, an item could just as well be any of its close neighbours, so fine-grained ranking is gone. This is the anisotropy from Part 3: in a narrow cone, "0.97" isn't close.
 
@@ -223,7 +223,7 @@ Two identical residual 3×256 runs gave 11,354 vs 11,447 unique IDs, and kNN NDC
 ## 4.8 Check yourself
 
 <details>
-<summary><b>Q1.</b> In the 2-D residual example, what ID and reconstruction would $\mathbf{x} = (0.1, 3.3)$ get?</summary>
+<summary><b>Q1.</b> In the 2-D residual example, what ID and reconstruction would <b><i>x</i></b> = (0.1, 3.3) get?</summary>
 
 Level 1: nearest to (0.1, 3.3) is (0, 3), code 2; residual (0.1, 0.3). Level 2: nearest to (0.1, 0.3) is (0, 0), code 0 (squared distance 0.10, against 0.50 for (0, 1)); residual (0.1, 0.3). Level 3: nearest is (0, 0.25), code 2 (squared distance 0.0125); residual (0.1, 0.05). ID **(2, 0, 2)**, reconstruction **(0, 3.25)**.
 </details>
@@ -235,7 +235,7 @@ Every code is used at least once, but the usage is very uneven: the level carrie
 </details>
 
 <details>
-<summary><b>Q3.</b> Hierarchical k-means with $K = 256$ has zero collisions. Why isn't it the better tokenizer?</summary>
+<summary><b>Q3.</b> Hierarchical k-means with <i>K</i> = 256 has zero collisions. Why isn't it the better tokenizer?</summary>
 
 Because it gets there by giving up on meaning. Its level-1 groups average about 47 items, which is fewer than 256, so level 2 simply numbers the items inside each group, and level 3 is always 0. Those codes are arbitrary labels that mean different things under each parent, so a generative model can't learn anything general about them.
 </details>

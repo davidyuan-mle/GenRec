@@ -8,7 +8,7 @@ This is the first step toward Semantic IDs: before we can give items meaningful 
 
 ## 3.1 Two kinds of knowledge about an item
 
-SASRec learns what an item is **only from who bought it**. Its vector $\mathbf{E}[i]$ starts random and is shaped by co-purchases. That's called **collaborative** information.
+SASRec learns what an item is **only from who bought it**. Its vector $`\mathbf{E}[i]`$ starts random and is shaped by co-purchases. That's called **collaborative** information.
 
 But every product also comes with a **description**. We know, without any purchase data, that "Covergirl LashBlast Mascara, Very Black" is a mascara and that it's similar to "Covergirl LashExact Mascara". That's **content** information.
 
@@ -70,12 +70,12 @@ It's 1 when they point the same way, 0 when they're at right angles (unrelated),
 
 | Vector | Value | Length |
 |---|---|---|
-| mascara A | $(0.8, 0.6)$ | 1 |
-| mascara B | $(0.6, 0.8)$ | 1 |
-| shampoo | $(0.6, -0.8)$ | 1 |
+| mascara A | $`(0.8, 0.6)`$ | 1 |
+| mascara B | $`(0.6, 0.8)`$ | 1 |
+| shampoo | $`(0.6, -0.8)`$ | 1 |
 
-- $\cos(\text{mascara A}, \text{mascara B}) = 0.8 \cdot 0.6 + 0.6 \cdot 0.8 = 0.96$: very similar.
-- $\cos(\text{mascara A}, \text{shampoo}) = 0.8 \cdot 0.6 + 0.6 \cdot (-0.8) = 0$: unrelated.
+- $`\cos(\text{mascara A}, \text{mascara B}) = 0.8 \cdot 0.6 + 0.6 \cdot 0.8 = 0.96`$: very similar.
+- $`\cos(\text{mascara A}, \text{shampoo}) = 0.8 \cdot 0.6 + 0.6 \cdot (-0.8) = 0`$: unrelated.
 
 ### Does it work on our data?
 
@@ -104,45 +104,45 @@ The simplest content-based recommender: "recommend the items whose text is most 
 
 ### The math
 
-1. Build a **user profile** from the last $m$ items, with more recent items counting more. Item $a$ steps back from the most recent gets weight $\gamma^a$ (gamma to the power $a$), with **decay** $0 < \gamma \le 1$:
+1. Build a **user profile** from the last $`m`$ items, with more recent items counting more. Item $`a`$ steps back from the most recent gets weight $`\gamma^a`$ (gamma to the power $`a`$), with **decay** $`0 < \gamma \le 1`$:
 
 $$
 \mathbf{p} = \sum_{a=0}^{m-1} \gamma^{a} ~ \mathbf{e}_{i_{n-a}} = \mathbf{e}_{i_n} + \gamma~ \mathbf{e}_{i_{n-1}} + \gamma^2~ \mathbf{e}_{i_{n-2}} + \dots
 $$
 
-2. Score every item: $s(i) = \mathbf{p} \cdot \mathbf{e}_i$.
+2. Score every item: $`s(i) = \mathbf{p} \cdot \mathbf{e}_i`$.
 3. **Exclude items already in the history.** Otherwise the most recent item, with similarity ≈ 1 to itself, would always come first.
 4. Return the top K.
 
-With $\gamma = 1$ all recent items count equally. With small $\gamma$ the most recent item dominates.
+With $`\gamma = 1`$ all recent items count equally. With small $`\gamma`$ the most recent item dominates.
 
 ### Worked example
 
 Five items with 2-D vectors. This is the exact example in the repo's unit test:
 
-| Item | $\mathbf{e}_i$ |
+| Item | $`\mathbf{e}_i`$ |
 |---|---|
-| 1 | $(1, 0)$ |
-| 2 | $(1, 0)$ |
-| 3 | $(0, 1)$ |
-| 4 | $(0.6, -0.8)$ |
-| 5 | $(0, 1)$ |
+| 1 | $`(1, 0)`$ |
+| 2 | $`(1, 0)`$ |
+| 3 | $`(0, 1)`$ |
+| 4 | $`(0.6, -0.8)`$ |
+| 5 | $`(0, 1)`$ |
 
-History $= (3, 1)$, so item 1 is most recent. With $m = 2$ and $\gamma = 0.5$:
+History $`= (3, 1)`$, so item 1 is most recent. With $`m = 2`$ and $`\gamma = 0.5`$:
 
 $$
 \mathbf{p} = 1 \cdot \mathbf{e}_1 + 0.5 \cdot \mathbf{e}_3 = (1, 0) + (0, 0.5) = (1, 0.5)
 $$
 
-| Item | $\mathbf{p} \cdot \mathbf{e}_i$ | Note |
+| Item | $`\mathbf{p} \cdot \mathbf{e}_i`$ | Note |
 |---|---|---|
 | 1 | 1.0 | in history: excluded |
 | 2 | **1.0** | rank 1 |
 | 3 | 0.5 | in history: excluded |
 | 5 | **0.5** | rank 2 |
-| 4 | $0.6 - 0.4 = 0.2$ | rank 3 |
+| 4 | $`0.6 - 0.4 = 0.2`$ | rank 3 |
 
-Top 2: **(2, 5)**. If the history order flips to $(1, 3)$, then $\mathbf{p} = (0.5, 1)$ and the top 2 becomes **(5, 2)**. The most recent item decides the order.
+Top 2: **(2, 5)**. If the history order flips to $`(1, 3)`$, then $`\mathbf{p} = (0.5, 1)`$ and the top 2 becomes **(5, 2)**. The most recent item decides the order.
 
 ---
 
@@ -154,11 +154,11 @@ From notebook 02 (validation split, so the test stays untouched):
 
 | Profile | Valid NDCG@10 |
 |---|---|
-| last item only ($m = 1$) | 0.0350 |
-| last 5, $\gamma = 0.3$ (best) | 0.0359 |
-| last 5, $\gamma = 0.5$ (our default) | 0.0346 |
-| last 5, $\gamma = 1.0$ (plain average) | 0.0234 |
-| last 10, $\gamma = 1.0$ | 0.0217 |
+| last item only ($`m = 1`$) | 0.0350 |
+| last 5, $`\gamma = 0.3`$ (best) | 0.0359 |
+| last 5, $`\gamma = 0.5`$ (our default) | 0.0346 |
+| last 5, $`\gamma = 1.0`$ (plain average) | 0.0234 |
+| last 10, $`\gamma = 1.0`$ | 0.0217 |
 
 **Recency dominates:** what you bought last is far more informative than your history as a whole. A plain average is clearly worst. The best setting barely beats the default, so we kept the default.
 
@@ -178,10 +178,10 @@ Three lessons:
 
 ### In our code
 
-- [text.py](../src/genrec/embeddings/text.py): `encode_texts` and `item_embeddings`. The latter adds a zero row 0 for padding, so row $i$ is item $i$.
-- [embed_items.py](../scripts/embed_items.py): saves the matrix to `data/processed/beauty/embeddings/sentence-t5-base.npy`, shape $12{,}102 \times 768$.
+- [text.py](../src/genrec/embeddings/text.py): `encode_texts` and `item_embeddings`. The latter adds a zero row 0 for padding, so row $`i`$ is item $`i`$.
+- [embed_items.py](../scripts/embed_items.py): saves the matrix to `data/processed/beauty/embeddings/sentence-t5-base.npy`, shape $`12{,}102 \times 768`$.
 - [amazon.py](../src/genrec/data/amazon.py): `item_text` builds the string.
-- [baselines.py](../src/genrec/models/baselines.py): `SemanticKNN`. [semantic_knn_beauty.yaml](../configs/semantic_knn_beauty.yaml) sets $m = 5$, $\gamma = 0.5$.
+- [baselines.py](../src/genrec/models/baselines.py): `SemanticKNN`. [semantic_knn_beauty.yaml](../configs/semantic_knn_beauty.yaml) sets $`m = 5`$, $`\gamma = 0.5`$.
 - [Notebook 02](../notebooks/02_semantic_embeddings.ipynb): neighbours, category check, similarity histogram, sweep.
 
 ---
@@ -195,9 +195,9 @@ So cosine similarity equals the plain dot product. That makes scoring every item
 </details>
 
 <details>
-<summary><b>Q2.</b> With $\gamma = 0.5$ and $m = 3$, what weights do the last three items get?</summary>
+<summary><b>Q2.</b> With γ = 0.5 and <i>m</i> = 3, what weights do the last three items get?</summary>
 
-Most recent: $0.5^0 = 1$. One back: $0.5$. Two back: $0.25$.
+Most recent: $`0.5^0 = 1`$. One back: $`0.5`$. Two back: $`0.25`$.
 </details>
 
 <details>

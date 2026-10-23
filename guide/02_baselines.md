@@ -58,16 +58,16 @@ To do that, it needs three ingredients, which the next sections cover one at a t
 
 ### The math
 
-- An **item embedding table** $\mathbf{E} \in \mathbb{R}^{(N+1) \times d}$: row $i$ is item $i$'s vector. Row 0 is reserved for **padding** (explained below). In our config $d = 64$.
-- A **position embedding table** $\mathbf{P} \in \mathbb{R}^{L \times d}$: one vector per position in the sequence. Our maximum length is $L = 50$.
+- An **item embedding table** $`\mathbf{E} \in \mathbb{R}^{(N+1) \times d}`$: row $`i`$ is item $`i`$'s vector. Row 0 is reserved for **padding** (explained below). In our config $`d = 64`$.
+- A **position embedding table** $`\mathbf{P} \in \mathbb{R}^{L \times d}`$: one vector per position in the sequence. Our maximum length is $`L = 50`$.
 
-The input vector at position $t$ is the sum of the two:
+The input vector at position $`t`$ is the sum of the two:
 
 $$
 \mathbf{x}_t = \mathbf{E}[i_t] + \mathbf{P}[t]
 $$
 
-Why add a position vector? Attention (next section) treats its inputs like an unordered bag. Adding $\mathbf{P}[t]$ is how the model knows that "shampoo, then conditioner" differs from "conditioner, then shampoo".
+Why add a position vector? Attention (next section) treats its inputs like an unordered bag. Adding $`\mathbf{P}[t]`$ is how the model knows that "shampoo, then conditioner" differs from "conditioner, then shampoo".
 
 ### Padding
 
@@ -85,17 +85,17 @@ Left padding keeps the most recent item at the same position (the last one) for 
 
 ### Intuition
 
-To predict what comes after position $t$, the model should look back at the earlier items and decide **which ones matter**. If the history is (shampoo, nail polish, conditioner), the hair items are more informative for a hair-care prediction than the polish. Attention computes those "how much does each earlier item matter" weights from the data.
+To predict what comes after position $`t`$, the model should look back at the earlier items and decide **which ones matter**. If the history is (shampoo, nail polish, conditioner), the hair items are more informative for a hair-care prediction than the polish. Attention computes those "how much does each earlier item matter" weights from the data.
 
 ### The math
 
-Stack the input vectors into a matrix $\mathbf{X}$ (one row per position). Three learned matrices turn each row into three roles:
+Stack the input vectors into a matrix $`\mathbf{X}`$ (one row per position). Three learned matrices turn each row into three roles:
 
 $$
 \mathbf{Q} = \mathbf{X}\mathbf{W}_Q \quad (\text{queries}), \qquad \mathbf{K} = \mathbf{X}\mathbf{W}_K \quad (\text{keys}), \qquad \mathbf{V} = \mathbf{X}\mathbf{W}_V \quad (\text{values})
 $$
 
-Think of a library search. The **query** is what position $t$ is looking for. Each **key** describes what an earlier position offers. The **value** is the content that position hands over if chosen.
+Think of a library search. The **query** is what position $`t`$ is looking for. Each **key** describes what an earlier position offers. The **value** is the content that position hands over if chosen.
 
 The attention output is:
 
@@ -105,43 +105,43 @@ $$
 
 Step by step:
 
-1. $\mathbf{Q}\mathbf{K}^\top$: entry $(t, s)$ is the dot product of position $t$'s query with position $s$'s key, meaning "how relevant is $s$ to $t$".
-2. $\div \sqrt{d}$: keeps the numbers from getting too large as $d$ grows, which would make the softmax too peaked.
-3. $+\mathbf{M}$: the **causal mask**. It is $-\infty$ wherever $s > t$ (the future) or $s$ is padding, and 0 elsewhere. Since $e^{-\infty} = 0$, those positions get exactly zero weight. Without it, the model could "cheat" during training by looking at the answer.
-4. $\text{softmax}$ along each row: turns relevance scores into weights that are positive and add up to 1.
-5. $\times~ \mathbf{V}$: each position's output is a **weighted average** of the values it's allowed to see.
+1. $`\mathbf{Q}\mathbf{K}^\top`$: entry $`(t, s)`$ is the dot product of position $`t`$'s query with position $`s`$'s key, meaning "how relevant is $`s`$ to $`t`$".
+2. $`\div \sqrt{d}`$: keeps the numbers from getting too large as $`d`$ grows, which would make the softmax too peaked.
+3. $`+\mathbf{M}`$: the **causal mask**. It is $`-\infty`$ wherever $`s > t`$ (the future) or $`s`$ is padding, and 0 elsewhere. Since $`e^{-\infty} = 0`$, those positions get exactly zero weight. Without it, the model could "cheat" during training by looking at the answer.
+4. $`\text{softmax}`$ along each row: turns relevance scores into weights that are positive and add up to 1.
+5. $`\times~ \mathbf{V}`$: each position's output is a **weighted average** of the values it's allowed to see.
 
 ### Worked example
 
-Three positions with $d = 2$. To keep the arithmetic short, take $\mathbf{W}_Q = \mathbf{W}_K = \mathbf{W}_V = $ identity, so $\mathbf{Q} = \mathbf{K} = \mathbf{V} = \mathbf{X}$:
+Three positions with $`d = 2`$. To keep the arithmetic short, take $`\mathbf{W}_Q = \mathbf{W}_K = \mathbf{W}_V = `$ identity, so $`\mathbf{Q} = \mathbf{K} = \mathbf{V} = \mathbf{X}`$:
 
-| Position | Item | $\mathbf{x}_t$ |
+| Position | Item | $`\mathbf{x}_t`$ |
 |---|---|---|
-| 1 | shampoo | $(1, 0)$ |
-| 2 | nail polish | $(0, 1)$ |
-| 3 | conditioner | $(1, 1)$ |
+| 1 | shampoo | $`(1, 0)`$ |
+| 2 | nail polish | $`(0, 1)`$ |
+| 3 | conditioner | $`(1, 1)`$ |
 
-**Position 3** may look at positions 1, 2 and 3. Its query is $(1, 1)$:
+**Position 3** may look at positions 1, 2 and 3. Its query is $`(1, 1)`$:
 
-| Looks at | $\mathbf{q}_3 \cdot \mathbf{k}_s$ | $\div \sqrt{2}$ | $e^{(\cdot)}$ | weight |
+| Looks at | $`\mathbf{q}_3 \cdot \mathbf{k}_s`$ | $`\div \sqrt{2}`$ | $`e^{(\cdot)}`$ | weight |
 |---|---|---|---|---|
-| 1: shampoo | $1$ | $0.707$ | $2.03$ | $2.03 / 8.17 = 0.248$ |
-| 2: polish | $1$ | $0.707$ | $2.03$ | $0.248$ |
-| 3: conditioner | $2$ | $1.414$ | $4.11$ | $0.503$ |
+| 1: shampoo | $`1`$ | $`0.707`$ | $`2.03`$ | $`2.03 / 8.17 = 0.248`$ |
+| 2: polish | $`1`$ | $`0.707`$ | $`2.03`$ | $`0.248`$ |
+| 3: conditioner | $`2`$ | $`1.414`$ | $`4.11`$ | $`0.503`$ |
 
-Output: $0.248 \cdot (1,0) + 0.248 \cdot (0,1) + 0.503 \cdot (1,1) = (0.75, 0.75)$.
+Output: $`0.248 \cdot (1,0) + 0.248 \cdot (0,1) + 0.503 \cdot (1,1) = (0.75, 0.75)`$.
 
-**Position 2** may only look at positions 1 and 2. The mask hides position 3. Its query is $(0, 1)$, so the scores are $0$ and $1$, which become weights $0.33$ and $0.67$. The output is $(0.33, 0.67)$. Position 2 never sees the conditioner, which is exactly what we want when training it to *predict* the conditioner.
+**Position 2** may only look at positions 1 and 2. The mask hides position 3. Its query is $`(0, 1)`$, so the scores are $`0`$ and $`1`$, which become weights $`0.33`$ and $`0.67`$. The output is $`(0.33, 0.67)`$. Position 2 never sees the conditioner, which is exactly what we want when training it to *predict* the conditioner.
 
 ### The rest of a Transformer layer
 
 Real layers wrap attention with a few standard parts. You don't need their details to follow this guide:
 
-- **Multiple heads:** run several attentions in parallel, each with its own $\mathbf{W}$ matrices, so different heads can track different patterns (brand, category, price). We use 2 heads.
+- **Multiple heads:** run several attentions in parallel, each with its own $`\mathbf{W}`$ matrices, so different heads can track different patterns (brand, category, price). We use 2 heads.
 - **Feed-forward network:** a small 2-layer neural network applied to each position separately after attention.
 - **Residual connections and layer normalization:** add each sub-layer's input back to its output and rescale. This keeps training stable.
 
-We stack **2** such layers. The final output at position $t$ is a vector $\mathbf{h}_t \in \mathbb{R}^{64}$ summarizing "the history up to $t$".
+We stack **2** such layers. The final output at position $`t`$ is a vector $`\mathbf{h}_t \in \mathbb{R}^{64}`$ summarizing "the history up to $`t`$".
 
 ---
 
@@ -149,13 +149,13 @@ We stack **2** such layers. The final output at position $t$ is a vector $\mathb
 
 ### The math
 
-Score every item by its dot product with $\mathbf{h}_t$, reusing the same item table $\mathbf{E}$ as the input (called **weight tying**):
+Score every item by its dot product with $`\mathbf{h}_t`$, reusing the same item table $`\mathbf{E}`$ as the input (called **weight tying**):
 
 $$
 s_t(i) = \mathbf{h}_t \cdot \mathbf{E}[i], \qquad P(i_{t+1} = i \mid i_1, \dots, i_t) = \text{softmax}_i\big(s_t(i)\big)
 $$
 
-This is exactly Part 0's Approach 1, with $\mathbf{u}_h = \mathbf{h}_t$ and $\mathbf{v}_i = \mathbf{E}[i]$.
+This is exactly Part 0's Approach 1, with $`\mathbf{u}_h = \mathbf{h}_t`$ and $`\mathbf{v}_i = \mathbf{E}[i]`$.
 
 Training minimizes the **cross-entropy loss**: the negative log-probability the model gave to the true next item.
 
@@ -163,17 +163,17 @@ $$
 \mathcal{L} = -\log P(i_{t+1} = \text{true item} \mid i_1, \dots, i_t)
 $$
 
-| Model's probability for the true item | Loss $-\log P$ |
+| Model's probability for the true item | Loss $`-\log P`$ |
 |---|---|
 | 0.77 (confident and right) | 0.26 |
 | 0.06 (thought it unlikely) | 2.81 |
-| $1/12{,}101$ (no idea: uniform guess) | 9.40 |
+| $`1/12{,}101`$ (no idea: uniform guess) | 9.40 |
 
 Lower is better. The loss explodes as the probability of the truth goes to 0, so the model is pushed hard to never be confidently wrong.
 
 ### A useful trick: predict at every position at once
 
-Because of the causal mask, position $t$ only sees items $1 \dots t$. So one pass over a sequence gives a prediction at **every** position, and each can be trained against its own next item:
+Because of the causal mask, position $`t`$ only sees items $`1 \dots t`$. So one pass over a sequence gives a prediction at **every** position, and each can be trained against its own next item:
 
 ```
 input  :  0    0   A   B   C        (left-padded history)
@@ -182,13 +182,13 @@ target :  0    0   B   C   D        (the same sequence shifted by one)
        ignored (padding)
 ```
 
-One user with $n$ training items gives $n - 1$ training signals in a single forward pass. Part 6 shows that TIGER can't use this trick as easily.
+One user with $`n`$ training items gives $`n - 1`$ training signals in a single forward pass. Part 6 shows that TIGER can't use this trick as easily.
 
 ### Interpreting the loss value
 
-$e^{\text{loss}}$ is the **perplexity**: roughly "the model is as uncertain as if choosing uniformly among this many items".
+$`e^{\text{loss}}`$ is the **perplexity**: roughly "the model is as uncertain as if choosing uniformly among this many items".
 
-| | Loss | $e^{\text{loss}}$ |
+| | Loss | $`e^{\text{loss}}`$ |
 |---|---|---|
 | Uniform guess over the catalog | 9.40 | 12,101 items |
 | SASRec after 5 epochs | 7.96 | ~2,900 items |
@@ -243,19 +243,19 @@ SASRec is the bar the generative model has to beat, and it's strong. But it has 
 <details>
 <summary><b>Q1.</b> What would go wrong if we removed the causal mask during training?</summary>
 
-Position $t$ could attend to position $t+1$, which is the very item it's supposed to predict. The model would learn to copy the answer, getting near-zero training loss, and would be useless at test time, where the next item isn't in the input.
+Position $`t`$ could attend to position $`t+1`$, which is the very item it's supposed to predict. The model would learn to copy the answer, getting near-zero training loss, and would be useless at test time, where the next item isn't in the input.
 </details>
 
 <details>
 <summary><b>Q2.</b> In the attention example, position 3's weights were (0.248, 0.248, 0.503). Why does the conditioner get the most weight?</summary>
 
-Its key $(1, 1)$ has the largest dot product with the query $(1, 1)$: $2$, against $1$ for the other two. With identity projections, a position attends most to positions whose vectors point in the same direction as its own. In a trained model the $\mathbf{W}$ matrices are learned, so "relevance" becomes whatever helps prediction.
+Its key $`(1, 1)`$ has the largest dot product with the query $`(1, 1)`$: $`2`$, against $`1`$ for the other two. With identity projections, a position attends most to positions whose vectors point in the same direction as its own. In a trained model the $`\mathbf{W}`$ matrices are learned, so "relevance" becomes whatever helps prediction.
 </details>
 
 <details>
 <summary><b>Q3.</b> SASRec's training loss went from 7.96 to 6.00. Roughly how many items is it "choosing among" at each point?</summary>
 
-$e^{7.96} \approx 2{,}900$ and $e^{6.00} \approx 400$. It narrowed its uncertainty about sevenfold.
+$`e^{7.96} \approx 2{,}900`$ and $`e^{6.00} \approx 400`$. It narrowed its uncertainty about sevenfold.
 </details>
 
 <details>

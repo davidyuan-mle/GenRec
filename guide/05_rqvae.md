@@ -22,8 +22,8 @@ Think of packing a suitcase. k-means packs your clothes as they are. RQ-VAE firs
 
 An **autoencoder** is two neural networks trained together:
 
-- an **encoder** $f$ that squeezes the input into a small **latent** vector: $\mathbf{z} = f(\mathbf{x})$,
-- a **decoder** $g$ that tries to rebuild the input from it: $\hat{\mathbf{x}} = g(\mathbf{z})$.
+- an **encoder** $`f`$ that squeezes the input into a small **latent** vector: $`\mathbf{z} = f(\mathbf{x})`$,
+- a **decoder** $`g`$ that tries to rebuild the input from it: $`\hat{\mathbf{x}} = g(\mathbf{z})`$.
 
 Both are trained to make the rebuild match, using the **reconstruction loss**:
 
@@ -31,7 +31,7 @@ $$
 \mathcal{L}_{\text{recon}} = \Vert \mathbf{x} - \hat{\mathbf{x}}\Vert ^2
 $$
 
-Because $\mathbf{z}$ is smaller than $\mathbf{x}$, the encoder must keep only what matters. Ours compresses 768 numbers to 32:
+Because $`\mathbf{z}`$ is smaller than $`\mathbf{x}`$, the encoder must keep only what matters. Ours compresses 768 numbers to 32:
 
 ```
 encoder:  768 → 512 → 256 → 128 → 32     (z, the latent)
@@ -46,7 +46,7 @@ Each arrow is a linear layer followed by a ReLU activation, except the last one.
 
 ### The math
 
-Insert Part 4's residual quantization between the encoder and decoder. It works on the 32-number latent, with $L = 3$ codebooks of $K = 256$ vectors each:
+Insert Part 4's residual quantization between the encoder and decoder. It works on the 32-number latent, with $`L = 3`$ codebooks of $`K = 256`$ vectors each:
 
 $$
 \mathbf{z} = f(\mathbf{x}), \qquad \mathbf{r}_0 = \mathbf{z}
@@ -60,7 +60,7 @@ $$
 \hat{\mathbf{z}} = \mathbf{e}^{(1)}_{c_1} + \mathbf{e}^{(2)}_{c_2} + \mathbf{e}^{(3)}_{c_3}, \qquad \hat{\mathbf{x}} = g(\hat{\mathbf{z}})
 $$
 
-The item's Semantic ID is $(c_1, c_2, c_3)$, the same format as before. The difference is that the encoder, the decoder and the codebook vectors $\mathbf{e}^{(l)}_k$ are **all learned together**.
+The item's Semantic ID is $`(c_1, c_2, c_3)`$, the same format as before. The difference is that the encoder, the decoder and the codebook vectors $`\mathbf{e}^{(l)}_k`$ are **all learned together**.
 
 ---
 
@@ -70,7 +70,7 @@ The item's Semantic ID is $(c_1, c_2, c_3)$, the same format as before. The diff
 
 Neural networks learn by **gradient descent**. For each weight, compute how the loss would change if the weight changed a little (the **gradient**), then nudge the weight the way that lowers the loss.
 
-But $\arg\min$ ("pick the nearest code") is a **step function**. Move $\mathbf{z}$ a tiny bit, and the chosen code usually doesn't change, so the output doesn't change and the gradient is **zero**. Then the encoder gets no learning signal at all.
+But $`\arg\min`$ ("pick the nearest code") is a **step function**. Move $`\mathbf{z}`$ a tiny bit, and the chosen code usually doesn't change, so the output doesn't change and the gradient is **zero**. Then the encoder gets no learning signal at all.
 
 ### The fix: the straight-through estimator
 
@@ -80,19 +80,19 @@ $$
 \hat{\mathbf{z}}_{\text{ST}} = \mathbf{z} + \text{sg}\big[\hat{\mathbf{z}} - \mathbf{z}\big]
 $$
 
-Here $\text{sg}[\cdot]$ means **stop-gradient**: "use this value, but treat it as a constant when computing gradients".
+Here $`\text{sg}[\cdot]`$ means **stop-gradient**: "use this value, but treat it as a constant when computing gradients".
 
-- **Forward:** $\mathbf{z} + (\hat{\mathbf{z}} - \mathbf{z}) = \hat{\mathbf{z}}$. The decoder sees the quantized vector.
-- **Backward:** the bracket counts as a constant, so $\partial \hat{\mathbf{z}}_{\text{ST}} / \partial \mathbf{z} = 1$. The decoder's gradient passes **straight through** to the encoder.
+- **Forward:** $`\mathbf{z} + (\hat{\mathbf{z}} - \mathbf{z}) = \hat{\mathbf{z}}`$. The decoder sees the quantized vector.
+- **Backward:** the bracket counts as a constant, so $`\partial \hat{\mathbf{z}}_{\text{ST}} / \partial \mathbf{z} = 1`$. The decoder's gradient passes **straight through** to the encoder.
 
 ### Worked example (1 number)
 
-Codebook $\lbrace 0, 1, 2, 3\rbrace $. The encoder outputs $z = 2.3$, which rounds to $\hat{z} = 2$. Say the decoder is the identity, and the target is $x = 2.5$.
+Codebook $`\lbrace 0, 1, 2, 3\rbrace `$. The encoder outputs $`z = 2.3`$, which rounds to $`\hat{z} = 2`$. Say the decoder is the identity, and the target is $`x = 2.5`$.
 
-1. **Forward:** $\hat{x} = \hat{z} = 2$, loss $= (2 - 2.5)^2 = 0.25$.
-2. **Gradient at the decoder input:** $\partial \text{loss} / \partial \hat{z} = 2(2 - 2.5) = -1$.
-3. **Without straight-through:** the gradient reaching $z$ is $0$, and the encoder learns nothing.
-4. **With straight-through:** the gradient reaching $z$ is $-1$. Gradient descent increases $z$, toward 2.5, which is the right direction. Once $z$ passes 2.5, it rounds to 3, and the code changes.
+1. **Forward:** $`\hat{x} = \hat{z} = 2`$, loss $`= (2 - 2.5)^2 = 0.25`$.
+2. **Gradient at the decoder input:** $`\partial \text{loss} / \partial \hat{z} = 2(2 - 2.5) = -1`$.
+3. **Without straight-through:** the gradient reaching $`z`$ is $`0`$, and the encoder learns nothing.
+4. **With straight-through:** the gradient reaching $`z`$ is $`-1`$. Gradient descent increases $`z`$, toward 2.5, which is the right direction. Once $`z`$ passes 2.5, it rounds to 3, and the code changes.
 
 It's an approximation: we pretend rounding wasn't there. In practice it works well, and it's the standard trick (it comes from VQ-VAE, which RQ-VAE builds on).
 
@@ -100,7 +100,7 @@ It's an approximation: we pretend rounding wasn't there. In practice it works we
 
 ## 5.5 The full loss: three terms
 
-The reconstruction loss trains the encoder and decoder. Two more terms keep the latents and the codebooks close to each other. For each level $l$, with residual $\mathbf{r}_{l-1}$ and chosen code vector $\mathbf{e}_l$:
+The reconstruction loss trains the encoder and decoder. Two more terms keep the latents and the codebooks close to each other. For each level $`l`$, with residual $`\mathbf{r}_{l-1}`$ and chosen code vector $`\mathbf{e}_l`$:
 
 $$
 \mathcal{L} = \underbrace{\Vert \mathbf{x} - \hat{\mathbf{x}}\Vert ^2}_{\text{reconstruction}} + \sum_{l=1}^{L} \Big( \underbrace{\big\Vert \text{sg}[\mathbf{r}_{l-1}] - \mathbf{e}_l\big\Vert ^2}_{\text{codebook loss}} + \beta \underbrace{\big\Vert \mathbf{r}_{l-1} - \text{sg}[\mathbf{e}_l]\big\Vert ^2}_{\text{commitment loss}} \Big)
@@ -108,20 +108,20 @@ $$
 
 | Term | What gets updated | Effect |
 |---|---|---|
-| Reconstruction | encoder, decoder | the codes must keep enough information to rebuild $\mathbf{x}$ |
+| Reconstruction | encoder, decoder | the codes must keep enough information to rebuild $`\mathbf{x}`$ |
 | Codebook loss | code vectors only (the residual is frozen by sg) | moves each chosen code **toward** the residuals that picked it, like k-means' "move centroid to the mean" step |
-| Commitment loss, weighted by $\beta$ | encoder only (the code is frozen by sg) | pulls the encoder's outputs **toward** their codes, so latents don't drift far from the codebook |
+| Commitment loss, weighted by $`\beta`$ | encoder only (the code is frozen by sg) | pulls the encoder's outputs **toward** their codes, so latents don't drift far from the codebook |
 
-We use $\beta = 0.25$, as in the original VQ-VAE and TIGER. The encoder should commit to codes, but more gently than the codes move toward it.
+We use $`\beta = 0.25`$, as in the original VQ-VAE and TIGER. The encoder should commit to codes, but more gently than the codes move toward it.
 
 ### Worked example (1 number)
 
-Residual $r = 2.3$, chosen code $e = 2$:
+Residual $`r = 2.3`$, chosen code $`e = 2`$:
 
 | Term | Value | Gradient | Effect of a gradient step |
 |---|---|---|---|
-| Codebook: $(\text{sg}[r] - e)^2$ | $0.09$ | wrt $e$: $2(e - r) = -0.6$ | $e$ moves **up**, toward 2.3 |
-| Commitment: $0.25 ~ (r - \text{sg}[e])^2$ | $0.0225$ | wrt $r$: $0.25 \cdot 2(r - e) = +0.15$ | $r$ moves **down**, toward 2 |
+| Codebook: $`(\text{sg}[r] - e)^2`$ | $`0.09`$ | wrt $`e`$: $`2(e - r) = -0.6`$ | $`e`$ moves **up**, toward 2.3 |
+| Commitment: $`0.25 ~ (r - \text{sg}[e])^2`$ | $`0.0225`$ | wrt $`r`$: $`0.25 \cdot 2(r - e) = +0.15`$ | $`r`$ moves **down**, toward 2 |
 
 The code and the latent move toward each other, the code faster.
 
@@ -168,7 +168,7 @@ Because of the anisotropy from Part 3, the raw embeddings have a large shared co
 
 ### Training
 
-3,000 epochs (batch size 1,024, Adam, learning rate $10^{-3}$), about 8 minutes on a laptop CPU:
+3,000 epochs (batch size 1,024, Adam, learning rate $`10^{-3}`$), about 8 minutes on a laptop CPU:
 
 | Epoch | Reconstruction loss | Unique 3-code IDs | Codes used per level |
 |---|---|---|---|
@@ -213,17 +213,17 @@ The remaining collisions are, again, near-duplicates: six Al-Rehab perfume oils 
 ## 5.9 Check yourself
 
 <details>
-<summary><b>Q1.</b> In the straight-through example, what would happen to $z = 2.3$ if the target were $x = 1.8$ instead?</summary>
+<summary><b>Q1.</b> In the straight-through example, what would happen to <i>z</i> = 2.3 if the target were <i>x</i> = 1.8 instead?</summary>
 
-Forward: $\hat{x} = 2$, so the gradient at the decoder input is $2(2 - 1.8) = +0.4$. Straight-through passes $+0.4$ to $z$, so gradient descent **lowers** $z$, toward 1.8.
+Forward: $`\hat{x} = 2`$, so the gradient at the decoder input is $`2(2 - 1.8) = +0.4`$. Straight-through passes $`+0.4`$ to $`z`$, so gradient descent **lowers** $`z`$, toward 1.8.
 
-There's a catch. While $z$ rounds to 2, the gradient keeps saying "go lower", so $z$ can drift past 1.5 and round to 1. That's worse ($\hat{x} = 1$, error 0.8 instead of 0.2), and now the gradient pushes $z$ back up, so $z$ can bounce around the boundary. Straight-through gradients are only an approximation. The commitment loss (5.5) helps here: it pulls $z$ toward its current code, which keeps it from wandering across boundaries.
+There's a catch. While $`z`$ rounds to 2, the gradient keeps saying "go lower", so $`z`$ can drift past 1.5 and round to 1. That's worse ($`\hat{x} = 1`$, error 0.8 instead of 0.2), and now the gradient pushes $`z`$ back up, so $`z`$ can bounce around the boundary. Straight-through gradients are only an approximation. The commitment loss (5.5) helps here: it pulls $`z`$ toward its current code, which keeps it from wandering across boundaries.
 </details>
 
 <details>
 <summary><b>Q2.</b> Why does the codebook loss put stop-gradient on the residual, and the commitment loss put it on the code?</summary>
 
-So each term moves only one side. The codebook loss should move the **codes** toward the data (like a k-means update) without dragging the encoder. The commitment loss should move the **encoder** toward the codes without moving them. The two pulls get different strengths, with $\beta = 0.25$ on the commitment side.
+So each term moves only one side. The codebook loss should move the **codes** toward the data (like a k-means update) without dragging the encoder. The commitment loss should move the **encoder** toward the codes without moving them. The two pulls get different strengths, with $`\beta = 0.25`$ on the commitment side.
 </details>
 
 <details>
