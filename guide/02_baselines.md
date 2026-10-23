@@ -17,7 +17,7 @@ Recommend the same thing to everyone: the items that were bought most often. It 
 Count how often each item appears in the training sequences:
 
 $$
-\text{count}(i) = \sum_{u} \#\{\text{times } i \text{ appears in user } u\text{'s training items}\}
+\text{count}(i) = \text{number of times item } i \text{ appears in all users' training items}
 $$
 
 and recommend the top-K items by count to every user.
@@ -92,7 +92,7 @@ To predict what comes after position $t$, the model should look back at the earl
 Stack the input vectors into a matrix $\mathbf{X}$ (one row per position). Three learned matrices turn each row into three roles:
 
 $$
-\mathbf{Q} = \mathbf{X}\mathbf{W}_Q \;(\text{queries}), \qquad \mathbf{K} = \mathbf{X}\mathbf{W}_K \;(\text{keys}), \qquad \mathbf{V} = \mathbf{X}\mathbf{W}_V \;(\text{values})
+\mathbf{Q} = \mathbf{X}\mathbf{W}_Q \thickspace (\text{queries}), \qquad \mathbf{K} = \mathbf{X}\mathbf{W}_K \thickspace (\text{keys}), \qquad \mathbf{V} = \mathbf{X}\mathbf{W}_V \thickspace (\text{values})
 $$
 
 Think of a library search. The **query** is what position $t$ is looking for. Each **key** describes what an earlier position offers. The **value** is the content that position hands over if chosen.
@@ -100,7 +100,7 @@ Think of a library search. The **query** is what position $t$ is looking for. Ea
 The attention output is:
 
 $$
-\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d}} + \mathbf{M}\right)\mathbf{V}
+\text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\negthinspace \left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d}} + \mathbf{M}\right)\mathbf{V}
 $$
 
 Step by step:
@@ -109,7 +109,7 @@ Step by step:
 2. $\div \sqrt{d}$: keeps the numbers from getting too large as $d$ grows, which would make the softmax too peaked.
 3. $+\mathbf{M}$: the **causal mask**. It is $-\infty$ wherever $s > t$ (the future) or $s$ is padding, and 0 elsewhere. Since $e^{-\infty} = 0$, those positions get exactly zero weight. Without it, the model could "cheat" during training by looking at the answer.
 4. $\text{softmax}$ along each row: turns relevance scores into weights that are positive and add up to 1.
-5. $\times\, \mathbf{V}$: each position's output is a **weighted average** of the values it's allowed to see.
+5. $\times\thinspace  \mathbf{V}$: each position's output is a **weighted average** of the values it's allowed to see.
 
 ### Worked example
 

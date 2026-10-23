@@ -28,7 +28,7 @@ An **autoencoder** is two neural networks trained together:
 Both are trained to make the rebuild match, using the **reconstruction loss**:
 
 $$
-\mathcal{L}_{\text{recon}} = \|\mathbf{x} - \hat{\mathbf{x}}\|^2
+\mathcal{L}_{\text{recon}} = \Vert \mathbf{x} - \hat{\mathbf{x}}\Vert ^2
 $$
 
 Because $\mathbf{z}$ is smaller than $\mathbf{x}$, the encoder must keep only what matters. Ours compresses 768 numbers to 32:
@@ -53,7 +53,7 @@ $$
 $$
 
 $$
-c_l = \arg\min_k \big\|\mathbf{r}_{l-1} - \mathbf{e}^{(l)}_k\big\|, \qquad \mathbf{r}_l = \mathbf{r}_{l-1} - \mathbf{e}^{(l)}_{c_l} \qquad (l = 1, 2, 3)
+c_l = \arg\min_k \big\Vert \mathbf{r}_{l-1} - \mathbf{e}^{(l)}_k\big\Vert , \qquad \mathbf{r}_l = \mathbf{r}_{l-1} - \mathbf{e}^{(l)}_{c_l} \qquad (l = 1, 2, 3)
 $$
 
 $$
@@ -87,7 +87,7 @@ Here $\text{sg}[\cdot]$ means **stop-gradient**: "use this value, but treat it a
 
 ### Worked example (1 number)
 
-Codebook $\{0, 1, 2, 3\}$. The encoder outputs $z = 2.3$, which rounds to $\hat{z} = 2$. Say the decoder is the identity, and the target is $x = 2.5$.
+Codebook $\lbrace 0, 1, 2, 3\rbrace $. The encoder outputs $z = 2.3$, which rounds to $\hat{z} = 2$. Say the decoder is the identity, and the target is $x = 2.5$.
 
 1. **Forward:** $\hat{x} = \hat{z} = 2$, loss $= (2 - 2.5)^2 = 0.25$.
 2. **Gradient at the decoder input:** $\partial \text{loss} / \partial \hat{z} = 2(2 - 2.5) = -1$.
@@ -103,7 +103,7 @@ It's an approximation: we pretend rounding wasn't there. In practice it works we
 The reconstruction loss trains the encoder and decoder. Two more terms keep the latents and the codebooks close to each other. For each level $l$, with residual $\mathbf{r}_{l-1}$ and chosen code vector $\mathbf{e}_l$:
 
 $$
-\mathcal{L} = \underbrace{\|\mathbf{x} - \hat{\mathbf{x}}\|^2}_{\text{reconstruction}} + \sum_{l=1}^{L} \Big( \underbrace{\big\|\text{sg}[\mathbf{r}_{l-1}] - \mathbf{e}_l\big\|^2}_{\text{codebook loss}} + \beta \underbrace{\big\|\mathbf{r}_{l-1} - \text{sg}[\mathbf{e}_l]\big\|^2}_{\text{commitment loss}} \Big)
+\mathcal{L} = \underbrace{\Vert \mathbf{x} - \hat{\mathbf{x}}\Vert ^2}_{\text{reconstruction}} + \sum_{l=1}^{L} \Big( \underbrace{\big\Vert \text{sg}[\mathbf{r}_{l-1}] - \mathbf{e}_l\big\Vert ^2}_{\text{codebook loss}} + \beta \underbrace{\big\Vert \mathbf{r}_{l-1} - \text{sg}[\mathbf{e}_l]\big\Vert ^2}_{\text{commitment loss}} \Big)
 $$
 
 | Term | What gets updated | Effect |
@@ -121,7 +121,7 @@ Residual $r = 2.3$, chosen code $e = 2$:
 | Term | Value | Gradient | Effect of a gradient step |
 |---|---|---|---|
 | Codebook: $(\text{sg}[r] - e)^2$ | $0.09$ | wrt $e$: $2(e - r) = -0.6$ | $e$ moves **up**, toward 2.3 |
-| Commitment: $0.25 \, (r - \text{sg}[e])^2$ | $0.0225$ | wrt $r$: $0.25 \cdot 2(r - e) = +0.15$ | $r$ moves **down**, toward 2 |
+| Commitment: $0.25 \thinspace  (r - \text{sg}[e])^2$ | $0.0225$ | wrt $r$: $0.25 \cdot 2(r - e) = +0.15$ | $r$ moves **down**, toward 2 |
 
 The code and the latent move toward each other, the code faster.
 

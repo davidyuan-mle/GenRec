@@ -41,7 +41,7 @@ Missing fields are skipped. The texts average about 24 words. The long free-text
 A **sentence encoder** is a Transformer (Part 2) pre-trained by someone else on huge amounts of text, so that **sentences with similar meaning get similar vectors**. You don't train it; you just use it.
 
 $$
-\text{text}_i \;\xrightarrow{\;\text{encoder}\;}\; \mathbf{e}_i \in \mathbb{R}^{768}
+\text{text}_i \thickspace \xrightarrow{\thickspace \text{encoder}\thickspace }\thickspace  \mathbf{e}_i \in \mathbb{R}^{768}
 $$
 
 We use `sentence-t5-base`, a smaller version of the Sentence-T5 encoder the TIGER paper used. Encoding all 12,101 items took under 2 minutes on a laptop GPU.
@@ -49,7 +49,7 @@ We use `sentence-t5-base`, a smaller version of the Sentence-T5 encoder the TIGE
 Then we **normalize** each vector to length 1:
 
 $$
-\mathbf{e}_i \leftarrow \frac{\mathbf{e}_i}{\|\mathbf{e}_i\|}, \qquad \text{where } \|\mathbf{e}\| = \sqrt{e_1^2 + \dots + e_{768}^2}
+\mathbf{e}_i \leftarrow \frac{\mathbf{e}_i}{\Vert \mathbf{e}_i\Vert }, \qquad \text{where } \Vert \mathbf{e}\Vert  = \sqrt{e_1^2 + \dots + e_{768}^2}
 $$
 
 ---
@@ -61,7 +61,7 @@ $$
 The **cosine similarity** of two vectors measures the angle between them and ignores their lengths:
 
 $$
-\cos(\mathbf{a}, \mathbf{b}) = \frac{\mathbf{a} \cdot \mathbf{b}}{\|\mathbf{a}\| \, \|\mathbf{b}\|}
+\cos(\mathbf{a}, \mathbf{b}) = \frac{\mathbf{a} \cdot \mathbf{b}}{\Vert \mathbf{a}\Vert  \thinspace  \Vert \mathbf{b}\Vert }
 $$
 
 It's 1 when they point the same way, 0 when they're at right angles (unrelated), and −1 when they're opposite. **When both vectors have length 1, cosine is just the dot product**, which is why we normalize: everything afterwards is a cheap dot product.
@@ -107,7 +107,7 @@ The simplest content-based recommender: "recommend the items whose text is most 
 1. Build a **user profile** from the last $m$ items, with more recent items counting more. Item $a$ steps back from the most recent gets weight $\gamma^a$ (gamma to the power $a$), with **decay** $0 < \gamma \le 1$:
 
 $$
-\mathbf{p} = \sum_{a=0}^{m-1} \gamma^{a} \, \mathbf{e}_{i_{n-a}} = \mathbf{e}_{i_n} + \gamma\, \mathbf{e}_{i_{n-1}} + \gamma^2\, \mathbf{e}_{i_{n-2}} + \dots
+\mathbf{p} = \sum_{a=0}^{m-1} \gamma^{a} \thinspace  \mathbf{e}_{i_{n-a}} = \mathbf{e}_{i_n} + \gamma\thinspace  \mathbf{e}_{i_{n-1}} + \gamma^2\thinspace  \mathbf{e}_{i_{n-2}} + \dots
 $$
 
 2. Score every item: $s(i) = \mathbf{p} \cdot \mathbf{e}_i$.

@@ -26,16 +26,16 @@ One code from a palette of 256 is too coarse to tell 12,101 items apart. So we'l
 
 ### The math
 
-Given points $\mathbf{x}_1, \dots, \mathbf{x}_n$, k-means looks for $K$ **centroids** $\boldsymbol{\mu}_1, \dots, \boldsymbol{\mu}_K$ (the codebook) and an assignment $c(j) \in \{0, \dots, K-1\}$ of each point to one centroid. The goal is to make each point as close as possible to its centroid:
+Given points $\mathbf{x}_1, \dots, \mathbf{x}_n$, k-means looks for $K$ **centroids** $\boldsymbol{\mu}_1, \dots, \boldsymbol{\mu}_K$ (the codebook) and an assignment $c(j) \in \lbrace 0, \dots, K-1\rbrace $ of each point to one centroid. The goal is to make each point as close as possible to its centroid:
 
 $$
-\min_{\boldsymbol{\mu},\, c} \; \sum_{j=1}^{n} \big\|\mathbf{x}_j - \boldsymbol{\mu}_{c(j)}\big\|^2
+\min_{\boldsymbol{\mu},\thinspace  c} \thickspace  \sum_{j=1}^{n} \big\Vert \mathbf{x}_j - \boldsymbol{\mu}_{c(j)}\big\Vert ^2
 $$
 
 That's the total squared distance, also called the **quantization error**. The standard algorithm (**Lloyd's algorithm**) alternates two easy steps until nothing changes:
 
-1. **Assign:** send each point to its nearest centroid, $c(j) = \arg\min_k \|\mathbf{x}_j - \boldsymbol{\mu}_k\|^2$.
-2. **Update:** move each centroid to the average of its points, $\boldsymbol{\mu}_k = \text{mean}\{\mathbf{x}_j : c(j) = k\}$.
+1. **Assign:** send each point to its nearest centroid, $c(j) = \arg\min_k \Vert \mathbf{x}_j - \boldsymbol{\mu}_k\Vert ^2$.
+2. **Update:** move each centroid to the average of its points, $\boldsymbol{\mu}_k = \text{mean}\lbrace \mathbf{x}_j : c(j) = k\rbrace $.
 
 Each step can only lower the error, so it always settles. It may settle in a *local* optimum, which depends on the starting centroids.
 
@@ -49,7 +49,7 @@ Points: $1, 2, 3, 10, 11, 12$. Deliberately bad start: $\mu_0 = 1$, $\mu_1 = 2$.
 | 2 | (1, 7.6) | 1, 2, 3 → 0 (e.g. 3 is 2 from 1 and 4.6 from 7.6); 10, 11, 12 → 1 | $\mu_0 = 2$, $\mu_1 = 11$ |
 | 3 | (2, 11) | same as before | no change: **done** |
 
-Final codebook $\{2, 11\}$. Points 1–3 get code 0, points 10–12 get code 1. Each point is now stored as one bit, at the cost of being "rounded" to 2 or 11.
+Final codebook $\lbrace 2, 11\rbrace $. Points 1–3 get code 0, points 10–12 get code 1. Each point is now stored as one bit, at the cost of being "rounded" to 2 or 11.
 
 ---
 
@@ -61,10 +61,10 @@ After one round of k-means, each item is "rounded" to its centroid, and there's 
 
 ### The math
 
-Start with $\mathbf{r}_0 = \mathbf{x}$ (the item's embedding). For each level $l = 1, \dots, L$, with its own codebook $\{\boldsymbol{\mu}^{(l)}_k\}$:
+Start with $\mathbf{r}_0 = \mathbf{x}$ (the item's embedding). For each level $l = 1, \dots, L$, with its own codebook $\lbrace \boldsymbol{\mu}^{(l)}_k\rbrace $:
 
 $$
-c_l = \arg\min_k \big\|\mathbf{r}_{l-1} - \boldsymbol{\mu}^{(l)}_k\big\|, \qquad \mathbf{r}_l = \mathbf{r}_{l-1} - \boldsymbol{\mu}^{(l)}_{c_l}
+c_l = \arg\min_k \big\Vert \mathbf{r}_{l-1} - \boldsymbol{\mu}^{(l)}_k\big\Vert , \qquad \mathbf{r}_l = \mathbf{r}_{l-1} - \boldsymbol{\mu}^{(l)}_{c_l}
 $$
 
 The Semantic ID is $(c_1, \dots, c_L)$, and the item's **reconstruction** (its quantized vector) is the sum of the chosen centroids:

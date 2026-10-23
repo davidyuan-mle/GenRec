@@ -49,7 +49,7 @@ The traditional approach: learn one vector per item and one vector per user hist
 - The score of item $i$ is the dot product:
 
 $$
-s(h, i) = \mathbf{u}_h \cdot \mathbf{v}_i = \sum_{j=1}^{d} u_{h,j} \, v_{i,j}
+s(h, i) = \mathbf{u}_h \cdot \mathbf{v}_i = \sum_{j=1}^{d} u_{h,j} \thinspace  v_{i,j}
 $$
 
 - To turn scores into probabilities, apply the **softmax**: exponentiate, then divide by the total, so the results are positive and add up to 1:

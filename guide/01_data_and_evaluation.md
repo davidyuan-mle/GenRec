@@ -35,7 +35,7 @@ The catch: removing users can push items below 5 interactions, and removing thos
 Let $D$ be the set of (user, item) interactions. Define the counts $n_u(D)$ = interactions of user $u$ and $n_i(D)$ = interactions of item $i$. The $k$-core is the largest subset $D_k \subseteq D$ such that
 
 $$
-n_u(D_k) \ge k \;\; \text{for every user in } D_k, \qquad n_i(D_k) \ge k \;\; \text{for every item in } D_k
+n_u(D_k) \ge k \thickspace \thickspace  \text{for every user in } D_k, \qquad n_i(D_k) \ge k \thickspace \thickspace  \text{for every item in } D_k
 $$
 
 The loop "drop everything below $k$, recount, repeat" finds it.
@@ -132,13 +132,13 @@ Let $\text{rank}$ be the position of the true item in the model's list (1 = top)
 **Recall@K** (also called Hit Rate@K): was it in the top K?
 
 $$
-\text{Recall@}K = \begin{cases} 1 & \text{if rank} \le K \\ 0 & \text{otherwise} \end{cases}
+\text{Recall@}K = \begin{cases} 1 & \text{if rank} \le K \cr  0 & \text{otherwise} \end{cases}
 $$
 
 **NDCG@K** (Normalized Discounted Cumulative Gain): like Recall, but a hit lower in the list counts for less. With only one correct item, the formula simplifies to
 
 $$
-\text{NDCG@}K = \begin{cases} \dfrac{1}{\log_2(\text{rank} + 1)} & \text{if rank} \le K \\ 0 & \text{otherwise} \end{cases}
+\text{NDCG@}K = \begin{cases} \dfrac{1}{\log_2(\text{rank} + 1)} & \text{if rank} \le K \cr  0 & \text{otherwise} \end{cases}
 $$
 
 The "discount" $\frac{1}{\log_2(\text{rank}+1)}$ is 1 at rank 1, 0.63 at rank 2, 0.5 at rank 3, 0.39 at rank 5, and 0.29 at rank 10. It falls quickly at first and then slowly.
@@ -148,7 +148,7 @@ The "discount" $\frac{1}{\log_2(\text{rank}+1)}$ is 1 at rank 1, 0.63 at rank 2,
 **MRR** (Mean Reciprocal Rank): one over the rank.
 
 $$
-\text{MRR} = \begin{cases} \dfrac{1}{\text{rank}} & \text{if found} \\ 0 & \text{otherwise} \end{cases}
+\text{MRR} = \begin{cases} \dfrac{1}{\text{rank}} & \text{if found} \cr  0 & \text{otherwise} \end{cases}
 $$
 
 It punishes low ranks harder than NDCG: rank 2 is worth 0.5, and rank 10 is worth 0.1.
@@ -180,7 +180,7 @@ Values around 0.03–0.08 for Recall@10 are normal on this benchmark. Compare mo
 
 ### In our code
 
-- [metrics.py](../src/genrec/metrics.py): `recall_at_k`, `ndcg_at_k`, `mrr`, and `evaluate`, which computes all of them for $K \in \{5, 10, 20\}$.
+- [metrics.py](../src/genrec/metrics.py): `recall_at_k`, `ndcg_at_k`, `mrr`, and `evaluate`, which computes all of them for $K \in \lbrace 5, 10, 20\rbrace $.
 - Every model has the same method, `recommend(histories, k)`, which returns top-K lists. That's what makes all models comparable with the same `evaluate` call.
 - One detail: models return only their top 20 items, so our MRR is really "MRR@20": a true item at rank 21 or lower counts as 0. That's standard practice, and the difference is tiny because $1/21$ is already small.
 - [scripts/train.py](../scripts/train.py) writes `metrics.json` for both validation and test into `experiments/<run>/`, and [RESULTS.md](../experiments/RESULTS.md) collects the test numbers.
