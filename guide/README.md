@@ -15,13 +15,13 @@ No prior recommender-systems knowledge is assumed. You need high-school algebra,
 | Part | Topic | Milestone | Status |
 |---|---|---|---|
 | [0](00_big_picture.md) | **The big picture**: what generative recommendation is and why anyone would do it | all | ✅ draft |
-| 1 | Data and evaluation: from reviews to sequences, leave-one-out, Recall@K / NDCG@K / MRR | 1 | ⬜ |
-| 2 | Baselines: popularity and SASRec (self-attention for sequences) | 1 | ⬜ |
-| 3 | Text embeddings and semantic kNN: turning product text into vectors | 2 | ⬜ |
-| 4 | Semantic IDs I: k-means, residual quantization, collisions | 3 | ⬜ |
-| 5 | Semantic IDs II: RQ-VAE (learned quantization, straight-through gradients, codebook collapse) | 4 | ⬜ |
-| 6 | Generative retrieval: TIGER (encoder-decoder, teacher forcing, constrained beam search) | 5 | ⬜ |
-| 7 | Putting it together: what our numbers say, and how PLUM / OneRec / GLIDE / Netflix extend this | — | ⬜ |
+| [1](01_data_and_evaluation.md) | **Data and evaluation**: from reviews to sequences, leave-one-out, Recall@K / NDCG@K / MRR | 1 | ✅ draft |
+| [2](02_baselines.md) | **Baselines**: popularity and SASRec (self-attention for sequences) | 1 | ✅ draft |
+| [3](03_text_embeddings.md) | **Text embeddings and semantic kNN**: turning product text into vectors | 2 | ✅ draft |
+| [4](04_semantic_ids_kmeans.md) | **Semantic IDs I**: k-means, residual quantization, collisions | 3 | ✅ draft |
+| [5](05_rqvae.md) | **Semantic IDs II**: RQ-VAE (learned quantization, straight-through gradients, codebook collapse) | 4 | ✅ draft |
+| [6](06_generative_retrieval.md) | **Generative retrieval**: TIGER (encoder-decoder, teacher forcing, constrained beam search) | 5 | ✅ draft |
+| [7](07_putting_it_together.md) | **Putting it together**: what our numbers say, and how PLUM / OneRec / GLIDE / Netflix extend this | — | ✅ draft |
 
 ## Notation used throughout
 

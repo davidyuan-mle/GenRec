@@ -14,7 +14,7 @@ Here is a real user from our Amazon Beauty data (user #17). These are their purc
 4. It's a 10 Miracle **Deep Conditioner** Plus Keratin
 5. It's a 10 Miracle **Leave-In Potion** Plus Keratin
 
-If you only saw items 1–4, what would you guess for item 5? Probably "something else from the It's a 10 line". That guess is exactly what a **sequential recommender** tries to make.
+(*It's a 10* is the brand name, not a quantity.) If you only saw items 1–4, what would you guess for item 5? Probably "something else from the It's a 10 line". That guess is exactly what a **sequential recommender** tries to make.
 
 ### The math
 
@@ -354,4 +354,4 @@ Beam search only decides **which** paths to keep; it can still keep a path that 
 | **Trie** | a prefix tree; here, all valid Semantic IDs, used to block invalid codes during decoding |
 | **Generative retrieval** | retrieving items by generating their identifiers instead of scoring the whole catalog |
 
-**Next:** Part 1, Data and evaluation: where these sequences come from, and how exactly we score a top-K list.
+**Next:** [Part 1, Data and evaluation](01_data_and_evaluation.md): where these sequences come from, and how exactly we score a top-K list.
