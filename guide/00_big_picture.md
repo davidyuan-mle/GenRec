@@ -6,7 +6,7 @@
 
 ## 0.1 The problem: guess what comes next
 
-Here is a real user from our Amazon Beauty data (user #17). These are their purchases, oldest first:
+Here is a real user from our Amazon Beauty data (user #17). These are their purchases, in the order our data stores them:
 
 1. It's a 10 Keratin **Leave-In Conditioner**
 2. It's a 10 Miracle **Oil** Plus Keratin
@@ -14,7 +14,7 @@ Here is a real user from our Amazon Beauty data (user #17). These are their purc
 4. It's a 10 Miracle **Deep Conditioner** Plus Keratin
 5. It's a 10 Miracle **Leave-In Potion** Plus Keratin
 
-(*It's a 10* is the brand name, not a quantity.) If you only saw items 1–4, what would you guess for item 5? Probably "something else from the It's a 10 line". That guess is exactly what a **sequential recommender** tries to make.
+(*It's a 10* is the brand name, not a quantity.) One honest caveat: all five reviews carry the same date, and Amazon timestamps only record the day, so their order here is partly arbitrary. [Part 8](08_training_walkthrough.md#82-stage-2-sort-renumber-group) explains this. The prediction problem is the same either way. If you only saw items 1–4, what would you guess for item 5? Probably "something else from the It's a 10 line". That guess is exactly what a **sequential recommender** tries to make.
 
 ### The math
 

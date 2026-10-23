@@ -22,6 +22,7 @@ No prior recommender-systems knowledge is assumed. You need high-school algebra,
 | [5](05_rqvae.md) | **Semantic IDs II**: RQ-VAE (learned quantization, straight-through gradients, codebook collapse) | 4 | ✅ draft |
 | [6](06_generative_retrieval.md) | **Generative retrieval**: TIGER (encoder-decoder, teacher forcing, constrained beam search) | 5 | ✅ draft |
 | [7](07_putting_it_together.md) | **Putting it together**: what our numbers say, and how PLUM / OneRec / GLIDE / Netflix extend this | — | ✅ draft |
+| [8](08_training_walkthrough.md) | **One training step, end to end**: a real user from raw file to batch, then one batch through forward pass, loss, gradients and an Adam update, using the repo's real code ([companion script](walkthrough_training_step.py)) | 1, 5 | ✅ draft |
 
 ## Notation used throughout
 

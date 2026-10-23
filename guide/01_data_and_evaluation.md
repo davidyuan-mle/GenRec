@@ -55,6 +55,8 @@ In this small case one round was enough. A trickier case: if u3 had also reviewe
 - [amazon.py](../src/genrec/data/amazon.py): `kcore_filter` runs the loop. `build_dataset` then sorts each user's items by time and renumbers items as $`1 \dots N`$, keeping $`0`$ for padding (Part 2).
 - [test_data.py](../tests/test_data.py): `test_kcore_filter_is_iterative` checks the "removal causes more removal" case.
 
+One note on our particular file: the version we download, `reviews_Beauty_5.json.gz`, is **already 5-core**. SNAP pre-filters it, which is what the `_5` means. So on this file our filter re-checks the condition and removes nothing. It's still in the pipeline so that it's correct on unfiltered files.
+
 After filtering, our dataset is:
 
 | | Value |
@@ -109,6 +111,7 @@ Notice that at test time the model is allowed to see the validation item (Deep C
 
 1. **Validation is for decisions, test is for reporting.** We pick settings (when to stop training, kNN's decay, …) using validation scores only. The test split is touched once, at the end. Otherwise we would be tuning to the test set and our reported numbers would be too optimistic.
 2. **Leave-one-out mixes time periods.** User A's test item might be from 2010 and user B's from 2014. A real deployment can only train on the past and predict the future for everyone at once. This is a known weakness of the benchmark, accepted because everyone uses it, which makes results comparable. It may be why our popularity and SASRec scores drop from validation to test (seen in Parts 2–3).
+3. **Many "orders" are really ties.** Amazon timestamps only record the day, and **43.9%** of consecutive items in our histories share the same day. Ties keep the file's order, which is product-ID (ASIN) order. So part of what a sequential model learns as "what comes next" is really "which product has the next ID". [Part 8](08_training_walkthrough.md#82-stage-2-sort-renumber-group) shows this on a real user.
 
 **In our code:** [sequences.py](../src/genrec/data/sequences.py), `leave_one_out`. Notebook 01 also found that **33 test targets never appear in any training sequence**: items so rare that their only appearances are as someone's final item. An ID-based model like SASRec can never rank these well, whereas a text-based model at least has their description.
 

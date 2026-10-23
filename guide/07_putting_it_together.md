@@ -128,4 +128,4 @@ World and language knowledge. Our TIGER learns only from about 131k (history, ne
 
 ---
 
-**Back to:** [the contents](README.md).
+**Next:** [Part 8, One training step, end to end](08_training_walkthrough.md): follow one real user and one batch through the actual training code.
