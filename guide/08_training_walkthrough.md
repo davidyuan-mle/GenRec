@@ -23,6 +23,7 @@ Every number in this part was printed by [walkthrough_training_step.py](walkthro
 | 6. Batches | `DataLoader` | one row of a 256 × 50 tensor | 88 batches per epoch |
 | 7. Training step | `model.loss` → `backward` → `opt.step` | (toy model below) | 88 steps per epoch |
 | Text path (8.11) | `item_text` → `embed_items.py` → RQ-VAE → TIGER tokens | 5 text strings → 5 × 768 vectors → 5 Semantic IDs | 12,101 items |
+| Prediction (8.12) | `TIGER.encode` → `generate` → `SemanticIDTrie.items` | 16 history tokens → 4 generated codes → item 10347 | 20 items per user |
 
 ---
 
@@ -545,7 +546,7 @@ So for user #17's **test** question, TIGER's encoder receives (8446, 9194, 9195,
 106 260 638 769 | 69 417 673 769 | 106 300 751 769 | 106 470 764 769
 ```
 
-and must generate the codes of 10347: first 105, then 112, 135, 0. Having seen three items in group 105, choosing 105 for the first code is the easy part. The other codes are where the sequence model has to work.
+and must generate the codes of 10347: first 105, then 112, 135, 0. Having seen three items in group 105, choosing 105 for the first code is the easy part. The next section shows which code is the hard one.
 
 ### The two paths, side by side
 
@@ -561,7 +562,71 @@ TIGER is the one model that uses **both** paths: the review sequences tell it *w
 
 ---
 
-## 8.12 The same walk for TIGER
+## 8.12 How the Semantic ID is used: one prediction, start to finish
+
+The Semantic IDs are computed **once, before TIGER trains**, and loaded as a fixed lookup table:
+
+```
+scripts/embed_items.py    text → 768-d vectors                         (run once)
+scripts/train_rqvae.py    vectors → semantic_ids/rqvae-3x256.npy       (run once: a 12,102 × 4 table of codes)
+configs/tiger_beauty.yaml semantic_ids: data/processed/beauty/semantic_ids/rqvae-3x256.npy
+TIGER.__init__            table → item_tokens (codes as tokens) + SemanticIDTrie (valid IDs)
+```
+
+TIGER never changes the table. If you change the tokenizer, you rebuild the table and retrain TIGER. Within TIGER, the Semantic ID plays three roles. Here they are for user #17's **test** question: given (8446, 9194, 9195, 10258), predict 10347.
+
+### Role 1: the input. History items become code tokens.
+
+`TIGER.encode` looks up `self.item_tokens[histories]` and flattens the result:
+
+```
+history items   8446              9194             9195              10258
+Semantic IDs    (105,3,125,0)     (68,160,160,0)   (105,43,238,0)    (105,213,251,0)
+tokens          106 260 638 769 | 69 417 673 769 | 106 300 751 769 | 106 470 764 769
+```
+
+Token 106 means "first code 105", and it appears three times. The encoder learned what 106 means from **every** user who bought **any** of the 31 products in group 105, not just from these exact items. That sharing is the point of Semantic IDs.
+
+### Role 2: the output. The decoder writes an ID, not an item number.
+
+`TIGER.generate` runs a beam search over the 4 code levels. The trie decides which codes are allowed at each step. Here are the real counts along the path to user #17's answer:
+
+| Step | Prefix so far | Valid next codes (out of 256) | Correct choice |
+|---|---|---|---|
+| 1 | (empty) | 256: every first code has some item | **105** |
+| 2 | (105) | 25: only 25 second codes exist under 105 | **112** |
+| 3 | (105, 112) | **1**: only one item has this prefix | 135 (forced) |
+| 4 | (105, 112, 135) | **1** | 0 (forced) |
+
+So for this user, the model makes two real decisions:
+- **Step 1, which group?** That's 256 options. The history makes 105 likely, since three of the four items are in it.
+- **Step 2, which product within the group?** That's 25 options, and the hard part. The group's 31 items include other It's a 10 products, other brands' leave-in treatments, and the items the user already bought.
+
+After step 2, the trie forces the rest. That's typical here: the 12,101 items use 9,477 different 2-code prefixes, and **81% of those prefixes hold exactly one item** (the largest holds 17). So for most items, choosing the first two codes already picks the product. With beam width 20, the search keeps 20 candidate prefixes at every step, so the top-20 list mixes the most likely items from 105 with any strong candidates from other groups.
+
+### Role 3: the lookup. ID back to product.
+
+At the end, `SemanticIDTrie.items` turns each finished 4-code ID into an item number:
+
+| Generated ID | Lookup result |
+|---|---|
+| (105, 112, 135, 0) | **10347**: It's A 10 Miracle Leave In Potion ✓ the correct answer |
+| (105, 112, 135, 1) | 0: no such item, so the trie never lets this be generated |
+
+Those 20 item numbers are TIGER's top-20 list, scored by `evaluate` exactly like SASRec's.
+
+### What this buys, and what it doesn't
+
+| | |
+|---|---|
+| **Small vocabulary** | 1,026 tokens however many products there are. SASRec needs a learned row per item. |
+| **Shared learning** | 31 products share token 106, so what's learned about one helps the others, including rarely bought ones. |
+| **New products** | A new product gets an ID from its text on day one, built from tokens TIGER already knows. Adding it to the trie makes it *possible* to generate without retraining. Whether TIGER *ranks* it well is a separate question, since it never saw that exact combination in training. We haven't tested this here. |
+| **The cost** | The fine distinction, "which of 25 options in group 105", has to come from the sequence model. Part 4 showed the codes alone lose about half the similarity detail. |
+
+---
+
+## 8.13 The same walk for TIGER
 
 TIGER (Part 6) uses the same loop, `fit_with_early_stopping`, but prepares its data differently. Using the same toy users, now with hand-made 3-code Semantic IDs ($`K = 4`$). In real training these come from the text path above; here they're picked by hand so the numbers stay small:
 
@@ -619,7 +684,7 @@ Compare with $`\ln 4 = 1.386`$ for a uniform guess over 4 codes. The level-1 val
 
 ---
 
-## 8.13 Check yourself
+## 8.14 Check yourself
 
 <details>
 <summary><b>Q1.</b> A user's training list is (7, 3, 9, 4). With max_len = 4, what are the inputs and targets, and how many training signals are there?</summary>

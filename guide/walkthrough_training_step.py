@@ -141,3 +141,13 @@ else:
     real_tiger = TIGER(ids, max_items=20)
     for i in u:
         print("item", i, "Semantic ID", ids[i].tolist(), "tokens", real_tiger.item_tokens[i].tolist())
+    print("\n=== Semantic ID at prediction time (section 8.12)")
+    trie = real_tiger.trie
+    for prefix in [[], [105], [105, 112], [105, 112, 135]]:
+        allowed = trie.allowed(torch.tensor([prefix], dtype=torch.long).view(1, len(prefix)))[0]
+        print("prefix", prefix, "-> valid next codes:", int(allowed.sum()))
+    print("lookup (105,112,135,0) ->", trie.items(torch.tensor([[105, 112, 135, 0]])).tolist(),
+          "| (105,112,135,1) ->", trie.items(torch.tensor([[105, 112, 135, 1]])).tolist())
+    print("items in group 105:", int((ids[1:, 0] == 105).sum()))
+    sizes = np.array(list(__import__("collections").Counter(map(tuple, ids[1:, :2])).values()))
+    print("2-code prefixes", len(sizes), "| share holding one item", (sizes == 1).mean().round(3), "| largest", sizes.max())
