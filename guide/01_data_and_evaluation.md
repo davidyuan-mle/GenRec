@@ -35,7 +35,7 @@ The catch: removing users can push items below 5 interactions, and removing thos
 Let $D$ be the set of (user, item) interactions. Define the counts $n_u(D)$ = interactions of user $u$ and $n_i(D)$ = interactions of item $i$. The $k$-core is the largest subset $D_k \subseteq D$ such that
 
 $$
-n_u(D_k) \ge k \thickspace \thickspace  \text{for every user in } D_k, \qquad n_i(D_k) \ge k \thickspace \thickspace  \text{for every item in } D_k
+n_u(D_k) \ge k \quad  \text{for every user in } D_k, \qquad n_i(D_k) \ge k \quad  \text{for every item in } D_k
 $$
 
 The loop "drop everything below $k$, recount, repeat" finds it.

@@ -35,7 +35,7 @@ $$
 A Transformer works on **tokens**: integer IDs that each get an embedding vector. The 4 code levels must not share token IDs: "233 at level 1" (a perfume oil) has nothing to do with "233 at level 2". So each level gets its own range:
 
 $$
-\text{token}(l, c) = 1 + l \cdot K + c, \qquad l \in \lbrace 0, 1, 2, 3\rbrace ,\thickspace  c \in \lbrace 0, \dots, K-1\rbrace ,\thickspace  K = 256
+\text{token}(l, c) = 1 + l \cdot K + c, \qquad l \in \lbrace 0, 1, 2, 3\rbrace ,\quad  c \in \lbrace 0, \dots, K-1\rbrace ,\quad  K = 256
 $$
 
 | Token range | Meaning |
@@ -82,7 +82,7 @@ The decoder is also a stack of Transformer layers, and each layer has **two** at
 2. **Cross-attention** to the encoder memory. This is how the decoder consults the history:
 
 $$
-\text{CrossAttention} = \text{softmax}\negthinspace \left(\frac{(\mathbf{Y}\mathbf{W}_Q)(\mathbf{H}\mathbf{W}_K)^\top}{\sqrt{d}}\right)\mathbf{H}\mathbf{W}_V
+\text{CrossAttention} = \text{softmax}\left(\frac{(\mathbf{Y}\mathbf{W}_Q)(\mathbf{H}\mathbf{W}_K)^\top}{\sqrt{d}}\right)\mathbf{H}\mathbf{W}_V
 $$
 
 The same formula as Part 2's attention, except that **queries come from the decoder** ($\mathbf{Y}$, "what I'm deciding now") while **keys and values come from the encoder** ($\mathbf{H}$, "what's in the history"). For example, when picking code 2, the decoder can attend strongly to the tokens of past perfume oils.
@@ -154,7 +154,7 @@ Exactly Part 0's procedure, with beam width $B = 20$:
 Before each step, codes that would leave the set of real IDs get probability 0 (log-probability $-\infty$). To check this quickly for thousands of prefixes at once, each prefix is turned into a single integer, as if it were a number written in base 256:
 
 $$
-\text{key}(c_1, \dots, c_l) = c_1 \cdot 256^{\thinspace l-1} + c_2 \cdot 256^{\thinspace l-2} + \dots + c_l
+\text{key}(c_1, \dots, c_l) = c_1 \cdot 256^{~l-1} + c_2 \cdot 256^{~l-2} + \dots + c_l
 $$
 
 Example: prefix $(233, 242)$ has key $233 \times 256 + 242 = 59{,}890$. For each level, the code stores a sorted list of valid prefix keys, and next to each one, a 256-entry yes/no mask of allowed next codes. Looking up a whole batch of prefixes is one sorted search (`torch.searchsorted`). At the end, the full 4-code key is looked up the same way to get the item number.

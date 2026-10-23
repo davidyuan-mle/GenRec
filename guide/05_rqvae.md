@@ -121,7 +121,7 @@ Residual $r = 2.3$, chosen code $e = 2$:
 | Term | Value | Gradient | Effect of a gradient step |
 |---|---|---|---|
 | Codebook: $(\text{sg}[r] - e)^2$ | $0.09$ | wrt $e$: $2(e - r) = -0.6$ | $e$ moves **up**, toward 2.3 |
-| Commitment: $0.25 \thinspace  (r - \text{sg}[e])^2$ | $0.0225$ | wrt $r$: $0.25 \cdot 2(r - e) = +0.15$ | $r$ moves **down**, toward 2 |
+| Commitment: $0.25 ~ (r - \text{sg}[e])^2$ | $0.0225$ | wrt $r$: $0.25 \cdot 2(r - e) = +0.15$ | $r$ moves **down**, toward 2 |
 
 The code and the latent move toward each other, the code faster.
 

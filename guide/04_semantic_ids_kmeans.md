@@ -26,16 +26,16 @@ One code from a palette of 256 is too coarse to tell 12,101 items apart. So we'l
 
 ### The math
 
-Given points $\mathbf{x}_1, \dots, \mathbf{x}_n$, k-means looks for $K$ **centroids** $\boldsymbol{\mu}_1, \dots, \boldsymbol{\mu}_K$ (the codebook) and an assignment $c(j) \in \lbrace 0, \dots, K-1\rbrace $ of each point to one centroid. The goal is to make each point as close as possible to its centroid:
+Given points $\mathbf{x}_1, \dots, \mathbf{x}_n$, k-means looks for $K$ **centroids** $\mu_1, \dots, \mu_K$ (the codebook) and an assignment $c(j) \in \lbrace 0, \dots, K-1\rbrace $ of each point to one centroid. The goal is to make each point as close as possible to its centroid:
 
 $$
-\min_{\boldsymbol{\mu},\thinspace  c} \thickspace  \sum_{j=1}^{n} \big\Vert \mathbf{x}_j - \boldsymbol{\mu}_{c(j)}\big\Vert ^2
+\min_{\mu,~ c} \quad  \sum_{j=1}^{n} \big\Vert \mathbf{x}_j - \mu_{c(j)}\big\Vert ^2
 $$
 
 That's the total squared distance, also called the **quantization error**. The standard algorithm (**Lloyd's algorithm**) alternates two easy steps until nothing changes:
 
-1. **Assign:** send each point to its nearest centroid, $c(j) = \arg\min_k \Vert \mathbf{x}_j - \boldsymbol{\mu}_k\Vert ^2$.
-2. **Update:** move each centroid to the average of its points, $\boldsymbol{\mu}_k = \text{mean}\lbrace \mathbf{x}_j : c(j) = k\rbrace $.
+1. **Assign:** send each point to its nearest centroid, $c(j) = \arg\min_k \Vert \mathbf{x}_j - \mu_k\Vert ^2$.
+2. **Update:** move each centroid to the average of its points, $\mu_k = \text{mean}\lbrace \mathbf{x}_j : c(j) = k\rbrace $.
 
 Each step can only lower the error, so it always settles. It may settle in a *local* optimum, which depends on the starting centroids.
 
@@ -61,16 +61,16 @@ After one round of k-means, each item is "rounded" to its centroid, and there's 
 
 ### The math
 
-Start with $\mathbf{r}_0 = \mathbf{x}$ (the item's embedding). For each level $l = 1, \dots, L$, with its own codebook $\lbrace \boldsymbol{\mu}^{(l)}_k\rbrace $:
+Start with $\mathbf{r}_0 = \mathbf{x}$ (the item's embedding). For each level $l = 1, \dots, L$, with its own codebook $\lbrace \mu^{(l)}_k\rbrace $:
 
 $$
-c_l = \arg\min_k \big\Vert \mathbf{r}_{l-1} - \boldsymbol{\mu}^{(l)}_k\big\Vert , \qquad \mathbf{r}_l = \mathbf{r}_{l-1} - \boldsymbol{\mu}^{(l)}_{c_l}
+c_l = \arg\min_k \big\Vert \mathbf{r}_{l-1} - \mu^{(l)}_k\big\Vert , \qquad \mathbf{r}_l = \mathbf{r}_{l-1} - \mu^{(l)}_{c_l}
 $$
 
 The Semantic ID is $(c_1, \dots, c_L)$, and the item's **reconstruction** (its quantized vector) is the sum of the chosen centroids:
 
 $$
-\hat{\mathbf{x}} = \boldsymbol{\mu}^{(1)}_{c_1} + \boldsymbol{\mu}^{(2)}_{c_2} + \dots + \boldsymbol{\mu}^{(L)}_{c_L}
+\hat{\mathbf{x}} = \mu^{(1)}_{c_1} + \mu^{(2)}_{c_2} + \dots + \mu^{(L)}_{c_L}
 $$
 
 Each level's codebook is learned by running k-means on the residuals of **all** items at that level. That means code 5 at level 2 means the same *correction* no matter what the level-1 code was. OneRec reports using this method under the name **RQ-KMeans**.
